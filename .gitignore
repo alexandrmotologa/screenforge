@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Tauri & Rust build artifacts
+src-tauri/target/
+src-tauri/gen/
+
+# Temp files
+.temp_frames/
+*.log
+
+# OS metadata
+.DS_Store
+Thumbs.db
