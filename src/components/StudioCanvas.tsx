@@ -1,20 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   CursorSettings,
+  IdleRampSettings,
+  KeycastSettings,
   RecordingSession,
+  SpotlightSettings,
   StudioSettings,
-  ZoomKeyframe,
+  WebcamSettings,
 } from '../types';
 import { StudioRenderer } from '../engine/studioRenderer';
 import { SpringCursorEngine } from '../engine/cursorPhysics';
 import { drawSimulatedDesktopUI } from '../data/sampleRecordings';
-import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 
 interface StudioCanvasProps {
   session: RecordingSession;
   currentTimeSeconds: number;
   studioSettings: StudioSettings;
   cursorSettings: CursorSettings;
+  spotlightSettings: SpotlightSettings;
+  webcamSettings: WebcamSettings;
+  keycastSettings: KeycastSettings;
   isPlaying: boolean;
   onTimeUpdate?: (time: number) => void;
 }
@@ -24,6 +30,9 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   currentTimeSeconds,
   studioSettings,
   cursorSettings,
+  spotlightSettings,
+  webcamSettings,
+  keycastSettings,
   isPlaying,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -67,13 +76,11 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         canvas.height = height;
       }
 
-      // Check if real video is available or use simulated desktop UI
       let videoSource: HTMLVideoElement | HTMLCanvasElement;
 
       if (session.videoUrl && videoElementRef.current) {
         videoSource = videoElementRef.current;
       } else {
-        // Draw simulated interactive desktop UI onto buffer
         const simCanvas = simulatedCanvasRef.current;
         if (simCanvas) {
           const simCtx = simCanvas.getContext('2d');
@@ -86,13 +93,16 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         }
       }
 
-      // Render the studio composition
       const result = StudioRenderer.renderFrame({
         canvas,
         video: videoSource,
         currentTimeSeconds,
         studioSettings,
         cursorSettings,
+        spotlightSettings,
+        webcamSettings,
+        keycastSettings,
+        keystrokes: session.keystrokes,
         cursorEngine: cursorEngineRef.current,
         cursorEvents: session.cursorTelemetry,
         zoomKeyframes: session.zoomKeyframes,
@@ -109,14 +119,20 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [session, currentTimeSeconds, studioSettings, cursorSettings]);
+  }, [
+    session,
+    currentTimeSeconds,
+    studioSettings,
+    cursorSettings,
+    spotlightSettings,
+    webcamSettings,
+    keycastSettings,
+  ]);
 
   return (
     <div className="relative flex-1 bg-neutral-950 flex flex-col items-center justify-center p-6 overflow-hidden select-none">
-      {/* Background Subtle Grid Texture */}
       <div className="absolute inset-0 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none" />
 
-      {/* Real Video Element (Hidden in DOM, feeds into canvas) */}
       {session.videoUrl && (
         <video
           ref={videoElementRef}
@@ -127,7 +143,6 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         />
       )}
 
-      {/* Main Studio Viewport */}
       <div
         className={`relative transition-all duration-300 flex items-center justify-center ${
           stageScale === '100%'
@@ -155,7 +170,6 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             }}
           />
 
-          {/* Real-time Status Badges */}
           <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none">
             {activeCameraScale > 1.05 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-500/90 text-white shadow-lg backdrop-blur-sm animate-pulse">
@@ -165,18 +179,25 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-neutral-900/80 text-neutral-300 border border-neutral-700/60 backdrop-blur-sm">
               {studioSettings.aspectRatio} • 4K Stage
             </span>
+            {webcamSettings.enabled && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-pink-500/20 text-pink-300 border border-pink-500/30 backdrop-blur-sm">
+                PiP Bubble
+              </span>
+            )}
+            {spotlightSettings.enabled && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-sm">
+                Spotlight
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Stage Scale Floating Controls */}
       <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-neutral-900/90 border border-neutral-800 p-1 rounded-lg backdrop-blur-md shadow-lg z-10 text-xs">
         <button
           onClick={() => setStageScale('fit')}
           className={`px-2 py-1 rounded font-medium transition-all ${
-            stageScale === 'fit'
-              ? 'bg-neutral-800 text-white'
-              : 'text-neutral-400 hover:text-white'
+            stageScale === 'fit' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white'
           }`}
           title="Fit to Screen"
         >
@@ -186,9 +207,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         <button
           onClick={() => setStageScale('75%')}
           className={`px-2 py-1 rounded font-medium transition-all ${
-            stageScale === '75%'
-              ? 'bg-neutral-800 text-white'
-              : 'text-neutral-400 hover:text-white'
+            stageScale === '75%' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white'
           }`}
         >
           75%
@@ -196,9 +215,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         <button
           onClick={() => setStageScale('100%')}
           className={`px-2 py-1 rounded font-medium transition-all ${
-            stageScale === '100%'
-              ? 'bg-neutral-800 text-white'
-              : 'text-neutral-400 hover:text-white'
+            stageScale === '100%' ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white'
           }`}
         >
           100%

@@ -9,7 +9,7 @@ import {
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
-import { CursorEvent, RecordingSession } from '../types';
+import { CursorEvent, KeystrokeItem, RecordingSession } from '../types';
 import { AutoZoomEngine } from '../engine/autoZoom';
 
 interface RecorderModalProps {
@@ -33,6 +33,7 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const telemetryRef = useRef<CursorEvent[]>([]);
+  const keystrokesRef = useRef<KeystrokeItem[]>([]);
   const recordingStartTimeRef = useRef<number>(0);
   const timerIntervalRef = useRef<number | null>(null);
 
@@ -111,6 +112,7 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
   const startActualRecording = (stream: MediaStream) => {
     chunksRef.current = [];
     telemetryRef.current = [];
+    keystrokesRef.current = [];
     recordingStartTimeRef.current = performance.now();
 
     let mimeType = 'video/webm;codecs=vp9';
@@ -158,8 +160,26 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
       });
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      const now = performance.now();
+      const modifiers: string[] = [];
+      if (e.ctrlKey) modifiers.push('Ctrl');
+      if (e.shiftKey) modifiers.push('Shift');
+      if (e.altKey) modifiers.push('Alt');
+      if (e.metaKey) modifiers.push('Cmd');
+
+      keystrokesRef.current.push({
+        id: `k_${now}`,
+        key: e.key,
+        modifiers,
+        timestamp: Math.round(now - recordingStartTimeRef.current),
+        duration: 1400,
+      });
+    };
+
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
 
     setIsRecording(true);
     setElapsedSeconds(0);
@@ -211,6 +231,7 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
       videoUrl,
       videoBlob: blob,
       cursorTelemetry: telemetryRef.current,
+      keystrokes: keystrokesRef.current,
       zoomKeyframes,
       inPoint: 0,
       outPoint: duration,

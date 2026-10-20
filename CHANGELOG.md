@@ -2,6 +2,17 @@
 
 All notable changes to ScreenForge are documented in this file.
 
+## [1.1.0] - 2026-10-20
+
+### Added
+- **Keycasting Shortcut HUD**: Floating translucent pill displaying pressed keys and shortcut combinations with animated decays.
+- **Webcam Picture-in-Picture**: Adjustable presenter bubble with corner positioning (Bottom-Right, Bottom-Left, Top-Right, Top-Left), border accents, and drop shadow.
+- **Spotlight Focus Dimmer**: Radial attenuation focusing illumination on active mouse coordinates.
+- **Tactile Web Audio Click Synthesizer**: Pure Web Audio mechanical switch, soft tap, and minimal click audio synthesis synchronized with click events.
+- **Smart Idle Speed Ramping**: Automatic detection of inactive gaps with 2x/4x fast-forward acceleration.
+- **External Video Drag and Drop**: Support for direct import of MP4, WebM, and MOV video files.
+- Expanded automated test suite with 9 unit tests covering all new engines.
+
 ## [1.0.0] - 2026-10-20
 
 ### Added

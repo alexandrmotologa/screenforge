@@ -12,8 +12,11 @@ import {
   Scissors,
   Volume2,
   VolumeX,
+  FastForward,
+  Keyboard,
 } from 'lucide-react';
-import { ZoomKeyframe } from '../types';
+import { IdleInterval } from '../engine/idleCompressor';
+import { KeystrokeItem, ZoomKeyframe } from '../types';
 
 interface TimelineProps {
   duration: number;
@@ -24,6 +27,10 @@ interface TimelineProps {
   inPoint: number;
   outPoint: number;
   clickTimestamps: number[];
+  keystrokes: KeystrokeItem[];
+  idleIntervals: IdleInterval[];
+  audioClickEnabled: boolean;
+  onToggleAudioClick: () => void;
   onSeek: (time: number) => void;
   onTogglePlay: () => void;
   onChangePlaybackRate: (rate: number) => void;
@@ -43,6 +50,10 @@ export const Timeline: React.FC<TimelineProps> = ({
   inPoint,
   outPoint,
   clickTimestamps,
+  keystrokes,
+  idleIntervals,
+  audioClickEnabled,
+  onToggleAudioClick,
   onSeek,
   onTogglePlay,
   onChangePlaybackRate,
@@ -77,7 +88,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const outPointPercent = (outPoint / safeDuration) * 100;
 
   return (
-    <div className="h-56 bg-neutral-900/95 border-t border-neutral-800/90 flex flex-col z-20 select-none">
+    <div className="h-60 bg-neutral-900/95 border-t border-neutral-800/90 flex flex-col z-20 select-none">
       {/* Top Playback Toolbar */}
       <div className="h-11 px-4 border-b border-neutral-800/80 flex items-center justify-between">
         {/* Left: Transport controls */}
@@ -123,6 +134,24 @@ export const Timeline: React.FC<TimelineProps> = ({
             <span className="text-neutral-500 mx-1">/</span>
             <span>{formatTime(duration)}</span>
           </div>
+
+          {/* Audio Click Sound FX Toggle */}
+          <button
+            onClick={onToggleAudioClick}
+            className={`ml-2 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+              audioClickEnabled
+                ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                : 'bg-neutral-950/70 border-neutral-800 text-neutral-500 hover:text-neutral-300'
+            }`}
+            title="Toggle Web Audio Tactile Click Sounds"
+          >
+            {audioClickEnabled ? (
+              <Volume2 className="w-3.5 h-3.5 text-rose-400" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5" />
+            )}
+            <span>Click FX</span>
+          </button>
         </div>
 
         {/* Center: Add Zoom at Playhead */}
@@ -172,7 +201,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       {/* Main Track Workspace */}
       <div className="flex-1 px-4 py-2 flex flex-col gap-1.5 overflow-hidden">
-        {/* Time Ruler */}
+        {/* Time Ruler with Idle Ramp Spans */}
         <div
           ref={rulerRef}
           onClick={handleRulerClick}
@@ -187,6 +216,20 @@ export const Timeline: React.FC<TimelineProps> = ({
             }}
           />
 
+          {/* Idle Speed Ramping Visual Indicators */}
+          {idleIntervals.map((idle) => {
+            const startPct = (idle.startTime / safeDuration) * 100;
+            const widthPct = (idle.duration / safeDuration) * 100;
+            return (
+              <div
+                key={idle.id}
+                className="absolute top-0 bottom-0 bg-amber-500/20 border-x border-amber-500/40 pointer-events-none [background:repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(245,158,11,0.2)_4px,rgba(245,158,11,0.2)_8px)]"
+                style={{ left: `${startPct}%`, width: `${widthPct}%` }}
+                title={`Smart Idle Ramp (${idle.duration.toFixed(1)}s inactive)`}
+              />
+            );
+          })}
+
           {/* Playhead Marker */}
           <div
             className="absolute top-0 bottom-0 w-0.5 bg-rose-500 shadow-sm z-30 pointer-events-none"
@@ -195,7 +238,6 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div className="w-2.5 h-2.5 bg-rose-500 rounded-sm -ml-1 -mt-0.5 shadow-md shadow-rose-500/50" />
           </div>
 
-          {/* Tick markers */}
           <div className="absolute inset-0 flex justify-between px-3 items-center pointer-events-none font-mono text-[9px] text-neutral-500">
             <span>00:00</span>
             <span>{formatTime(duration * 0.25)}</span>
@@ -206,7 +248,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
 
         {/* Track 1: Auto-Zoom Keyframe Chips */}
-        <div className="relative h-12 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 py-1 flex items-center overflow-x-auto">
+        <div className="relative h-11 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 py-1 flex items-center overflow-x-auto">
           <div className="w-20 shrink-0 flex items-center gap-1.5 text-rose-400 font-bold text-[11px]">
             <ZoomIn className="w-3.5 h-3.5" />
             <span>ZOOM</span>
@@ -251,11 +293,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           </div>
         </div>
 
-        {/* Track 2: Cursor Action & Click Telemetry Pips */}
-        <div className="relative h-9 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 flex items-center">
+        {/* Track 2: Cursor & Keystroke Telemetry */}
+        <div className="relative h-8 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 flex items-center">
           <div className="w-20 shrink-0 flex items-center gap-1.5 text-sky-400 font-bold text-[11px]">
             <MousePointer className="w-3.5 h-3.5" />
-            <span>ACTIONS</span>
+            <span>CLICKS</span>
           </div>
 
           <div className="relative flex-1 h-full flex items-center">
@@ -274,17 +316,29 @@ export const Timeline: React.FC<TimelineProps> = ({
           </div>
         </div>
 
-        {/* Track 3: Video Waveform / Clip Duration */}
-        <div className="relative h-9 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 flex items-center">
-          <div className="w-20 shrink-0 flex items-center gap-1.5 text-neutral-400 font-bold text-[11px]">
-            <Scissors className="w-3.5 h-3.5" />
-            <span>VIDEO</span>
+        {/* Track 3: Keycasting HUD Track */}
+        <div className="relative h-8 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 flex items-center">
+          <div className="w-20 shrink-0 flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
+            <Keyboard className="w-3.5 h-3.5" />
+            <span>KEYS</span>
           </div>
 
-          <div className="relative flex-1 h-5 bg-neutral-800/70 rounded flex items-center px-2 overflow-hidden border border-neutral-700/50">
-            <span className="text-[10px] font-mono text-neutral-400 truncate">
-              Screen Recording Clip (60 FPS Native WebCodecs Track)
-            </span>
+          <div className="relative flex-1 h-full flex items-center">
+            {keystrokes.map((k) => {
+              const pct = (k.timestamp / 1000 / safeDuration) * 100;
+              const label = [...k.modifiers, k.key].join('+');
+              return (
+                <div
+                  key={k.id}
+                  className="absolute px-1 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono text-emerald-300 truncate max-w-[80px] -ml-2 cursor-pointer hover:bg-emerald-500/30"
+                  style={{ left: `${pct}%` }}
+                  title={`Keystroke: ${label}`}
+                  onClick={() => onSeek(k.timestamp / 1000)}
+                >
+                  {label}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

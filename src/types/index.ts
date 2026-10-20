@@ -19,6 +19,10 @@ export type ExportFormat = 'mp4' | 'webm' | 'gif';
 
 export type ExportResolution = '4k' | '2k' | '1080p' | '720p';
 
+export type WebcamPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+
+export type ClickAudioStyle = 'mechanical' | 'soft' | 'minimal';
+
 export interface CursorEvent {
   x: number; // 0 to 1 normalized, or absolute screen pixels
   y: number;
@@ -26,6 +30,20 @@ export interface CursorEvent {
   type: 'move' | 'mousedown' | 'mouseup' | 'click' | 'dblclick' | 'contextmenu' | 'keydown';
   button?: number; // 0: left, 1: middle, 2: right
   key?: string;
+  modifiers?: {
+    ctrl?: boolean;
+    shift?: boolean;
+    alt?: boolean;
+    meta?: boolean;
+  };
+}
+
+export interface KeystrokeItem {
+  id: string;
+  key: string;
+  modifiers: string[];
+  timestamp: number; // ms
+  duration: number; // ms to display
 }
 
 export interface ZoomKeyframe {
@@ -75,6 +93,35 @@ export interface CursorSettings {
   clickSoundVolume: number;
 }
 
+export interface SpotlightSettings {
+  enabled: boolean;
+  intensity: number; // 0 to 100% dimming
+  radius: number; // px radius of illuminated circle
+}
+
+export interface WebcamSettings {
+  enabled: boolean;
+  position: WebcamPosition;
+  size: number; // px
+  shape: 'circle' | 'squircle';
+  borderWidth: number;
+  borderColor: string;
+  shadow: boolean;
+}
+
+export interface KeycastSettings {
+  enabled: boolean;
+  position: 'bottom-center' | 'top-center';
+  style: 'glass' | 'dark' | 'glow';
+  fadeDurationMs: number;
+}
+
+export interface IdleRampSettings {
+  enabled: boolean;
+  thresholdSeconds: number; // e.g. 2.5s
+  speedMultiplier: number; // 2x or 4x
+}
+
 export interface ExportSettings {
   format: ExportFormat;
   resolution: ExportResolution;
@@ -92,6 +139,7 @@ export interface RecordingSession {
   videoUrl: string;
   videoBlob?: Blob;
   cursorTelemetry: CursorEvent[];
+  keystrokes: KeystrokeItem[];
   zoomKeyframes: ZoomKeyframe[];
   inPoint: number; // seconds (trim start)
   outPoint: number; // seconds (trim end)

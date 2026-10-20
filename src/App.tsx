@@ -1,21 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Header } from './components/Header';
 import { StudioCanvas } from './components/StudioCanvas';
 import { Timeline } from './components/Timeline';
 import { Inspector } from './components/Inspector';
 import { RecorderModal } from './components/RecorderModal';
 import { ExportModal } from './components/ExportModal';
+import { DropZone } from './components/DropZone';
 import {
+  ClickAudioStyle,
   CursorSettings,
+  IdleRampSettings,
+  KeycastSettings,
   RecordingSession,
+  SpotlightSettings,
   StudioSettings,
+  WebcamSettings,
   ZoomKeyframe,
 } from './types';
 import { generateSampleSession } from './data/sampleRecordings';
 import { AutoZoomEngine } from './engine/autoZoom';
+import { ClickAudioSynthesizer } from './engine/audioSynthesizer';
+import { IdleSpeedCompressor } from './engine/idleCompressor';
 
 export const App: React.FC = () => {
-  // Initialize with sample interactive demo session
   const [session, setSession] = useState<RecordingSession>(() => generateSampleSession());
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
@@ -57,13 +64,80 @@ export const App: React.FC = () => {
     clickSoundVolume: 0.4,
   });
 
+  // Spotlight Focus Dimmer
+  const [spotlightSettings, setSpotlightSettings] = useState<SpotlightSettings>({
+    enabled: false,
+    intensity: 45,
+    radius: 180,
+  });
+
+  // Webcam Picture-in-Picture Bubble
+  const [webcamSettings, setWebcamSettings] = useState<WebcamSettings>({
+    enabled: false,
+    position: 'bottom-right',
+    size: 140,
+    shape: 'circle',
+    borderWidth: 3,
+    borderColor: '#ec4899',
+    shadow: true,
+  });
+
+  // Keycasting Shortcut HUD
+  const [keycastSettings, setKeycastSettings] = useState<KeycastSettings>({
+    enabled: true,
+    position: 'bottom-center',
+    style: 'glass',
+    fadeDurationMs: 1400,
+  });
+
+  // Smart Idle Speed Ramping
+  const [idleRampSettings, setIdleRampSettings] = useState<IdleRampSettings>({
+    enabled: true,
+    thresholdSeconds: 2.2,
+    speedMultiplier: 2.0,
+  });
+
+  // Audio click synthesizer
+  const [audioClickStyle, setAudioClickStyle] = useState<ClickAudioStyle>('mechanical');
+  const audioSynthRef = useRef<ClickAudioSynthesizer>(
+    new ClickAudioSynthesizer({
+      volume: cursorSettings.clickSoundVolume,
+      isMuted: !cursorSettings.tactileClickSound,
+      style: audioClickStyle,
+    })
+  );
+
   // Modals
   const [isRecorderOpen, setIsRecorderOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
 
   const lastFrameTimeRef = useRef<number>(performance.now());
+  const lastClickPlayedIndexRef = useRef<number>(-1);
 
-  // Playback timer loop
+  // Synchronize audio click synth settings
+  useEffect(() => {
+    audioSynthRef.current.setVolume(cursorSettings.clickSoundVolume);
+    audioSynthRef.current.setMuted(!cursorSettings.tactileClickSound);
+    audioSynthRef.current.setStyle(audioClickStyle);
+  }, [cursorSettings.clickSoundVolume, cursorSettings.tactileClickSound, audioClickStyle]);
+
+  // Detect idle intervals
+  const idleIntervals = useMemo(() => {
+    return IdleSpeedCompressor.detectIdleSpans(
+      session.cursorTelemetry,
+      session.duration,
+      idleRampSettings
+    );
+  }, [session.cursorTelemetry, session.duration, idleRampSettings]);
+
+  // Click telemetry timestamps for the timeline track
+  const clickTimestamps = useMemo(() => {
+    return session.cursorTelemetry
+      .filter((e) => e.type === 'click' || e.type === 'mousedown')
+      .map((e) => e.timestamp);
+  }, [session.cursorTelemetry]);
+
+  // Main playback timer loop
   useEffect(() => {
     let animId: number;
 
@@ -72,10 +146,30 @@ export const App: React.FC = () => {
       lastFrameTimeRef.current = now;
 
       if (isPlaying && session.duration > 0) {
+        // Evaluate dynamic speed boost if currently in an idle interval
+        const dynamicMultiplier = IdleSpeedCompressor.getSpeedMultiplierAt(
+          currentTime,
+          idleIntervals,
+          idleRampSettings
+        );
+
         setCurrentTime((prev) => {
-          const nextTime = prev + dt * playbackRate;
+          const nextTime = prev + dt * playbackRate * dynamicMultiplier;
           const end = session.outPoint > session.inPoint ? session.outPoint : session.duration;
+
+          // Check if playhead crossed any click event to trigger audio click sound
+          const currentMs = nextTime * 1000;
+          for (let i = 0; i < clickTimestamps.length; i++) {
+            const clickMs = clickTimestamps[i];
+            if (clickMs >= prev * 1000 && clickMs <= currentMs && lastClickPlayedIndexRef.current !== i) {
+              lastClickPlayedIndexRef.current = i;
+              audioSynthRef.current.playClick();
+              break;
+            }
+          }
+
           if (nextTime >= end) {
+            lastClickPlayedIndexRef.current = -1;
             return session.inPoint; // loop back to in-point
           }
           return nextTime;
@@ -87,9 +181,19 @@ export const App: React.FC = () => {
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [isPlaying, playbackRate, session.duration, session.inPoint, session.outPoint]);
+  }, [
+    isPlaying,
+    playbackRate,
+    currentTime,
+    session.duration,
+    session.inPoint,
+    session.outPoint,
+    clickTimestamps,
+    idleIntervals,
+    idleRampSettings,
+  ]);
 
-  // Keyboard shortcuts (Space = Play/Pause, Left/Right = Frame step)
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -116,11 +220,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [session.duration]);
 
-  // Click telemetry timestamps for the timeline track
-  const clickTimestamps = session.cursorTelemetry
-    .filter((e) => e.type === 'click' || e.type === 'mousedown')
-    .map((e) => e.timestamp);
-
   // Auto-Zoom Regenerator
   const handleRegenerateAutoZoom = () => {
     const keyframes = AutoZoomEngine.generateKeyframes(
@@ -136,7 +235,6 @@ export const App: React.FC = () => {
   };
 
   const handleAddZoomKeyframe = (time: number) => {
-    // Determine target from cursor at that time
     let targetX = 0.5;
     let targetY = 0.5;
     const closest = session.cursorTelemetry.find(
@@ -186,7 +284,6 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-neutral-950 text-neutral-100 font-sans">
-      {/* Top Application Header */}
       <Header
         onOpenRecorder={() => setIsRecorderOpen(true)}
         onLoadSample={() => {
@@ -198,40 +295,72 @@ export const App: React.FC = () => {
           setIsPlaying(false);
           setIsExportOpen(true);
         }}
+        onVideoImported={(newSession) => {
+          setSession(newSession);
+          setCurrentTime(0);
+          setIsPlaying(true);
+        }}
         studioSettings={studioSettings}
         onUpdateStudioSettings={(s) =>
           setStudioSettings((prev) => ({ ...prev, ...s }))
         }
       />
 
-      {/* Center Studio Area: Canvas + Property Inspector */}
-      <div className="flex-1 flex overflow-hidden">
-        <StudioCanvas
-          session={session}
-          currentTimeSeconds={currentTime}
-          studioSettings={studioSettings}
-          cursorSettings={cursorSettings}
-          isPlaying={isPlaying}
-        />
+      <DropZone
+        onVideoLoaded={(newSession) => {
+          setSession(newSession);
+          setCurrentTime(0);
+          setIsPlaying(true);
+        }}
+      >
+        <div className="flex-1 flex overflow-hidden">
+          <StudioCanvas
+            session={session}
+            currentTimeSeconds={currentTime}
+            studioSettings={studioSettings}
+            cursorSettings={cursorSettings}
+            spotlightSettings={spotlightSettings}
+            webcamSettings={webcamSettings}
+            keycastSettings={keycastSettings}
+            isPlaying={isPlaying}
+          />
 
-        <Inspector
-          studioSettings={studioSettings}
-          cursorSettings={cursorSettings}
-          zoomKeyframes={session.zoomKeyframes}
-          onUpdateStudioSettings={(s) =>
-            setStudioSettings((prev) => ({ ...prev, ...s }))
-          }
-          onUpdateCursorSettings={(c) =>
-            setCursorSettings((prev) => ({ ...prev, ...c }))
-          }
-          onRegenerateAutoZoom={handleRegenerateAutoZoom}
-          onUpdateKeyframe={handleUpdateKeyframe}
-          onRemoveKeyframe={handleRemoveZoomKeyframe}
-          onSeek={(t) => setCurrentTime(t)}
-        />
-      </div>
+          <Inspector
+            studioSettings={studioSettings}
+            cursorSettings={cursorSettings}
+            spotlightSettings={spotlightSettings}
+            webcamSettings={webcamSettings}
+            keycastSettings={keycastSettings}
+            idleRampSettings={idleRampSettings}
+            audioClickStyle={audioClickStyle}
+            zoomKeyframes={session.zoomKeyframes}
+            onUpdateStudioSettings={(s) =>
+              setStudioSettings((prev) => ({ ...prev, ...s }))
+            }
+            onUpdateCursorSettings={(c) =>
+              setCursorSettings((prev) => ({ ...prev, ...c }))
+            }
+            onUpdateSpotlightSettings={(sp) =>
+              setSpotlightSettings((prev) => ({ ...prev, ...sp }))
+            }
+            onUpdateWebcamSettings={(w) =>
+              setWebcamSettings((prev) => ({ ...prev, ...w }))
+            }
+            onUpdateKeycastSettings={(k) =>
+              setKeycastSettings((prev) => ({ ...prev, ...k }))
+            }
+            onUpdateIdleRampSettings={(ir) =>
+              setIdleRampSettings((prev) => ({ ...prev, ...ir }))
+            }
+            onUpdateAudioClickStyle={(st) => setAudioClickStyle(st)}
+            onRegenerateAutoZoom={handleRegenerateAutoZoom}
+            onUpdateKeyframe={handleUpdateKeyframe}
+            onRemoveKeyframe={handleRemoveZoomKeyframe}
+            onSeek={(t) => setCurrentTime(t)}
+          />
+        </div>
+      </DropZone>
 
-      {/* Bottom Multi-Track Timeline & Playback Bar */}
       <Timeline
         duration={session.duration}
         currentTime={currentTime}
@@ -241,6 +370,15 @@ export const App: React.FC = () => {
         inPoint={session.inPoint}
         outPoint={session.outPoint}
         clickTimestamps={clickTimestamps}
+        keystrokes={session.keystrokes}
+        idleIntervals={idleIntervals}
+        audioClickEnabled={cursorSettings.tactileClickSound}
+        onToggleAudioClick={() =>
+          setCursorSettings((prev) => ({
+            ...prev,
+            tactileClickSound: !prev.tactileClickSound,
+          }))
+        }
         onSeek={(t) => setCurrentTime(t)}
         onTogglePlay={() => setIsPlaying((p) => !p)}
         onChangePlaybackRate={(r) => setPlaybackRate(r)}
@@ -248,14 +386,19 @@ export const App: React.FC = () => {
         onRemoveZoomKeyframe={handleRemoveZoomKeyframe}
         onUpdateKeyframe={handleUpdateKeyframe}
         onSetInPoint={(t) =>
-          setSession((prev) => ({ ...prev, inPoint: Math.min(t, prev.outPoint - 0.5) }))
+          setSession((prev) => ({
+            ...prev,
+            inPoint: Math.min(t, prev.outPoint - 0.5),
+          }))
         }
         onSetOutPoint={(t) =>
-          setSession((prev) => ({ ...prev, outPoint: Math.max(t, prev.inPoint + 0.5) }))
+          setSession((prev) => ({
+            ...prev,
+            outPoint: Math.max(t, prev.inPoint + 0.5),
+          }))
         }
       />
 
-      {/* Screen & Telemetry Recorder Modal */}
       <RecorderModal
         isOpen={isRecorderOpen}
         onClose={() => setIsRecorderOpen(false)}
@@ -266,7 +409,6 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* 4K Studio Exporter Modal */}
       <ExportModal
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}

@@ -1,9 +1,9 @@
-import { CursorEvent, RecordingSession, ZoomKeyframe } from '../types';
+import { CursorEvent, KeystrokeItem, RecordingSession, ZoomKeyframe } from '../types';
 import { AutoZoomEngine } from '../engine/autoZoom';
 
 /**
  * Generates an authentic interactive demonstration session with simulated screen interactions,
- * real cursor movement sweeps, click telemetry, and pre-computed auto-zoom keyframes.
+ * real cursor movement sweeps, click telemetry, keystroke HUD items, and pre-computed auto-zoom keyframes.
  */
 export function generateSampleSession(): RecordingSession {
   const duration = 12.0; // 12 seconds
@@ -32,7 +32,6 @@ export function generateSampleSession(): RecordingSession {
     const tSec = frame / fps;
     const tMs = Math.round(tSec * 1000);
 
-    // Find current segment between waypoints
     let p0 = waypoints[0];
     let p1 = waypoints[waypoints.length - 1];
 
@@ -47,15 +46,13 @@ export function generateSampleSession(): RecordingSession {
     const segDuration = p1.t - p0.t || 1;
     const progress = Math.max(0, Math.min(1, (tSec - p0.t) / segDuration));
 
-    // Smoothstep progression with subtle human hand micro-tremor
     const smoothProgress = progress * progress * (3 - 2 * progress);
-    const jitterX = (Math.sin(frame * 0.7) * 0.0015) + (Math.cos(frame * 1.3) * 0.001);
-    const jitterY = (Math.cos(frame * 0.9) * 0.0015) + (Math.sin(frame * 1.1) * 0.001);
+    const jitterX = Math.sin(frame * 0.7) * 0.0015 + Math.cos(frame * 1.3) * 0.001;
+    const jitterY = Math.cos(frame * 0.9) * 0.0015 + Math.sin(frame * 1.1) * 0.001;
 
     const x = p0.x + (p1.x - p0.x) * smoothProgress + jitterX;
     const y = p0.y + (p1.y - p0.y) * smoothProgress + jitterY;
 
-    // Check if click occurs at waypoint arrival
     const isAtActionWaypoint = Math.abs(tSec - p1.t) < 0.02 && p1.action === 'click';
 
     if (isAtActionWaypoint) {
@@ -76,6 +73,38 @@ export function generateSampleSession(): RecordingSession {
     }
   }
 
+  // Pre-configured realistic keystrokes synchronized with actions
+  const keystrokes: KeystrokeItem[] = [
+    {
+      id: 'k_1',
+      key: 'P',
+      modifiers: ['Ctrl', 'Shift'],
+      timestamp: 1800,
+      duration: 1400,
+    },
+    {
+      id: 'k_2',
+      key: 'Enter',
+      modifiers: [],
+      timestamp: 4200,
+      duration: 1200,
+    },
+    {
+      id: 'k_3',
+      key: 'K',
+      modifiers: ['Ctrl'],
+      timestamp: 7200,
+      duration: 1400,
+    },
+    {
+      id: 'k_4',
+      key: 'S',
+      modifiers: ['Ctrl'],
+      timestamp: 9800,
+      duration: 1200,
+    },
+  ];
+
   // Generate intelligent auto-zoom keyframes from the synthesized telemetry
   const zoomKeyframes: ZoomKeyframe[] = AutoZoomEngine.generateKeyframes(events, duration, {
     defaultScale: 2.1,
@@ -93,6 +122,7 @@ export function generateSampleSession(): RecordingSession {
     duration,
     videoUrl: '', // Will be rendered into canvas dynamically
     cursorTelemetry: events,
+    keystrokes,
     zoomKeyframes,
     inPoint: 0,
     outPoint: duration,
@@ -100,8 +130,7 @@ export function generateSampleSession(): RecordingSession {
 }
 
 /**
- * Creates an authentic high-resolution simulated UI canvas representing a modern software studio
- * (code editor, real-time metrics, live terminal) that updates cleanly with the timeline.
+ * Creates an authentic high-resolution simulated UI canvas representing a modern software studio.
  */
 export function drawSimulatedDesktopUI(
   ctx: CanvasRenderingContext2D,
@@ -156,7 +185,7 @@ export function drawSimulatedDesktopUI(
   ctx.fillStyle = '#0f1117';
   ctx.fillRect(sidebarW, 0, 240, tabH);
   ctx.fillStyle = '#ec4899';
-  ctx.fillRect(sidebarW, 0, 240, 2); // Tab highlight
+  ctx.fillRect(sidebarW, 0, 240, 2);
 
   ctx.fillStyle = '#ffffff';
   ctx.font = '600 13px "JetBrains Mono", monospace';
@@ -183,11 +212,9 @@ export function drawSimulatedDesktopUI(
   let codeY = tabH + 40;
   ctx.font = '500 15px "JetBrains Mono", monospace';
   codeLines.forEach((line, idx) => {
-    // Line numbers
     ctx.fillStyle = '#475569';
     ctx.fillText(`${(idx + 1).toString().padStart(2, ' ')}`, sidebarW + 24, codeY);
 
-    // Syntax highlighting simulation
     if (line.startsWith('//')) {
       ctx.fillStyle = '#64748b';
     } else if (line.includes('pub struct') || line.includes('impl') || line.includes('pub fn')) {
@@ -217,7 +244,6 @@ export function drawSimulatedDesktopUI(
   ctx.lineTo(width, termY);
   ctx.stroke();
 
-  // Terminal Tab Bar
   ctx.fillStyle = '#ffffff';
   ctx.font = '700 12px "Plus Jakarta Sans", sans-serif';
   ctx.fillText('TERMINAL & TELEMETRY STREAM', sidebarW + 24, termY + 28);
@@ -230,12 +256,11 @@ export function drawSimulatedDesktopUI(
   ctx.font = '500 12px "JetBrains Mono", monospace';
   ctx.fillText('60 FPS SYNCED', sidebarW + 242, termY + 28);
 
-  // Dynamic Terminal Logs updating with timeSeconds
   const logs = [
-    `[${(timeSeconds).toFixed(2)}s] TELEMETRY_INGEST: 60Hz high-precision cursor sampling active`,
-    `[${(timeSeconds).toFixed(2)}s] SPRING_DYNAMICS: mass=1.00 stiffness=180.0 damping=24.0 (critically damped)`,
-    `[${(timeSeconds).toFixed(2)}s] CAMERA_AUTOZOOM: cluster threshold=2.4s safe_clamping=true`,
-    `[${(timeSeconds).toFixed(2)}s] STUDIO_CANVAS: 4K rendering pipeline ready (NVENC hardware acceleration enabled)`,
+    `[${timeSeconds.toFixed(2)}s] TELEMETRY_INGEST: 60Hz high-precision cursor sampling active`,
+    `[${timeSeconds.toFixed(2)}s] SPRING_DYNAMICS: mass=1.00 stiffness=180.0 damping=24.0 (critically damped)`,
+    `[${timeSeconds.toFixed(2)}s] CAMERA_AUTOZOOM: cluster threshold=2.4s safe_clamping=true`,
+    `[${timeSeconds.toFixed(2)}s] STUDIO_CANVAS: 4K rendering pipeline ready (NVENC hardware acceleration enabled)`,
   ];
 
   let logY = termY + 68;

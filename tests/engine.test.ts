@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { AutoZoomEngine } from '../src/engine/autoZoom';
 import { SpringCursorEngine } from '../src/engine/cursorPhysics';
 import { StudioRenderer } from '../src/engine/studioRenderer';
+import { IdleSpeedCompressor } from '../src/engine/idleCompressor';
+import { ClickAudioSynthesizer } from '../src/engine/audioSynthesizer';
 import { CursorEvent } from '../src/types';
 
 describe('AutoZoomEngine', () => {
   it('correctly clamps center coordinates to prevent showing offscreen boundaries', () => {
-    // At scale 2.0, half viewport is 0.25. Valid center range is [0.25, 0.75]
     const clampedNearOrigin = AutoZoomEngine.clampCenter(0.05, 0.05, 2.0);
     expect(clampedNearOrigin.x).toBeCloseTo(0.25, 2);
     expect(clampedNearOrigin.y).toBeCloseTo(0.25, 2);
@@ -15,7 +16,6 @@ describe('AutoZoomEngine', () => {
     expect(clampedNearMax.x).toBeCloseTo(0.75, 2);
     expect(clampedNearMax.y).toBeCloseTo(0.75, 2);
 
-    // Center in safe area remains unchanged
     const safeCenter = AutoZoomEngine.clampCenter(0.48, 0.52, 2.0);
     expect(safeCenter.x).toBeCloseTo(0.48, 2);
     expect(safeCenter.y).toBeCloseTo(0.52, 2);
@@ -24,8 +24,8 @@ describe('AutoZoomEngine', () => {
   it('clusters proximate clicks into unified zoom segments', () => {
     const events: CursorEvent[] = [
       { x: 0.3, y: 0.3, timestamp: 1000, type: 'click' },
-      { x: 0.32, y: 0.31, timestamp: 2000, type: 'click' }, // Within cluster window (1s diff, 0.02 dist)
-      { x: 0.8, y: 0.8, timestamp: 6000, type: 'click' }, // Separate cluster
+      { x: 0.32, y: 0.31, timestamp: 2000, type: 'click' },
+      { x: 0.8, y: 0.8, timestamp: 6000, type: 'click' },
     ];
 
     const keyframes = AutoZoomEngine.generateKeyframes(events, 10, {
@@ -54,22 +54,18 @@ describe('AutoZoomEngine', () => {
       },
     ];
 
-    // Prior to keyframe
     const stateBefore = AutoZoomEngine.evaluateCamera(keyframes, 1.0);
     expect(stateBefore.scale).toBe(1.0);
     expect(stateBefore.centerX).toBe(0.5);
 
-    // Mid-transition into zoom (2.25s)
     const stateMidZoom = AutoZoomEngine.evaluateCamera(keyframes, 2.25);
     expect(stateMidZoom.scale).toBeGreaterThan(1.0);
     expect(stateMidZoom.scale).toBeLessThan(2.0);
 
-    // Steady hold (3.5s)
     const stateSteady = AutoZoomEngine.evaluateCamera(keyframes, 3.5);
     expect(stateSteady.scale).toBe(2.0);
     expect(stateSteady.centerX).toBeCloseTo(0.4, 2);
 
-    // After keyframe has fully exited (6.0s)
     const stateAfter = AutoZoomEngine.evaluateCamera(keyframes, 6.0);
     expect(stateAfter.scale).toBe(1.0);
   });
@@ -98,7 +94,6 @@ describe('SpringCursorEngine', () => {
       { x: 0.8, y: 0.6, timestamp: 500, type: 'move' },
     ];
 
-    // Simulate several frames
     let state = engine.evaluate(telemetry, 0, 1 / 60);
     expect(state.x).toBe(0);
 
@@ -106,7 +101,6 @@ describe('SpringCursorEngine', () => {
       state = engine.evaluate(telemetry, t, 0.05);
     }
 
-    // After 1000ms, cursor should have converged stably towards target
     expect(state.x).toBeGreaterThan(0.7);
     expect(state.y).toBeGreaterThan(0.5);
     expect(Number.isFinite(state.x)).toBe(true);
@@ -119,14 +113,12 @@ describe('SpringCursorEngine', () => {
       { x: 0.5, y: 0.5, timestamp: 1000, type: 'click' },
     ];
 
-    // At 1100ms (100ms after click)
     const state = engine.evaluate(telemetry, 1100, 1 / 60);
     expect(state.isClicking).toBe(true);
     expect(state.recentClicks.length).toBe(1);
     expect(state.recentClicks[0].age).toBeGreaterThan(0);
     expect(state.recentClicks[0].age).toBeLessThan(1);
 
-    // At 2000ms (1000ms after click, faded)
     const stateLater = engine.evaluate(telemetry, 2000, 1 / 60);
     expect(stateLater.isClicking).toBe(false);
     expect(stateLater.recentClicks.length).toBe(0);
@@ -150,5 +142,56 @@ describe('StudioRenderer', () => {
     const dim43 = StudioRenderer.getDimensionsForAspectRatio('4:3', 1920);
     expect(dim43.width).toBe(1920);
     expect(dim43.height).toBe(1440);
+  });
+});
+
+describe('IdleSpeedCompressor', () => {
+  it('identifies inactive spans exceeding threshold duration', () => {
+    const events: CursorEvent[] = [
+      { x: 0.1, y: 0.1, timestamp: 0, type: 'move' },
+      { x: 0.1, y: 0.1, timestamp: 1000, type: 'move' },
+      { x: 0.5, y: 0.5, timestamp: 5000, type: 'click' }, // 4000ms idle span
+      { x: 0.51, y: 0.51, timestamp: 6000, type: 'move' },
+    ];
+
+    const idleSpans = IdleSpeedCompressor.detectIdleSpans(events, 6.0, {
+      enabled: true,
+      thresholdSeconds: 2.0,
+      speedMultiplier: 2.0,
+    });
+
+    expect(idleSpans.length).toBe(1);
+    expect(idleSpans[0].duration).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it('boosts speed multiplier when playhead sits within an idle span', () => {
+    const idleSpans = [
+      { id: 'i1', startTime: 2.0, endTime: 6.0, duration: 4.0 },
+    ];
+
+    const boost = IdleSpeedCompressor.getSpeedMultiplierAt(3.5, idleSpans, {
+      enabled: true,
+      thresholdSeconds: 2.0,
+      speedMultiplier: 4.0,
+    });
+    expect(boost).toBe(4.0);
+
+    const normal = IdleSpeedCompressor.getSpeedMultiplierAt(1.0, idleSpans, {
+      enabled: true,
+      thresholdSeconds: 2.0,
+      speedMultiplier: 4.0,
+    });
+    expect(normal).toBe(1.0);
+  });
+});
+
+describe('ClickAudioSynthesizer', () => {
+  it('initializes with configurable volume and muted parameters', () => {
+    const synth = new ClickAudioSynthesizer({ volume: 0.5, isMuted: false, style: 'mechanical' });
+    expect(synth).toBeDefined();
+
+    synth.setVolume(0.8);
+    synth.setMuted(true);
+    synth.setStyle('soft');
   });
 });

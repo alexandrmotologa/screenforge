@@ -4,7 +4,7 @@
 
 # ScreenForge
 
-**Open-source desktop screen recorder with automated click telemetry auto-zoom, spring physics cursor trajectory smoothing, studio canvas styling, and 4K video export.**
+**Open-source desktop screen recorder with automated click telemetry auto-zoom, spring physics cursor trajectory smoothing, studio canvas styling, keycasting HUD, webcam bubble, and 4K video export.**
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alexandrmotologa/screenforge)
@@ -23,7 +23,7 @@
 
 Screen Studio popularized automated click zooms and smooth cursor movements for video walk-throughs on macOS, but remains proprietary and unavailable on Windows and Linux. ScreenForge provides an open-source, cross-platform alternative built with Rust, Tauri v2, React 19, and FFmpeg.
 
-ScreenForge captures screen frames, audio, and synchronous mouse telemetry. In post-processing, it evaluates action clusters to automatically pan and zoom the virtual camera, smooths erratic mouse movements through damped spring physics, and nests the footage within a configurable studio canvas.
+ScreenForge captures screen frames, audio, keystrokes, and synchronous mouse telemetry. In post-processing, it evaluates action clusters to automatically pan and zoom the virtual camera, smooths erratic mouse movements through damped spring physics, synthesizes tactile mechanical clicks, and nests the footage within a configurable studio canvas.
 
 ---
 
@@ -46,7 +46,15 @@ ScreenForge captures screen frames, audio, and synchronous mouse telemetry. In p
 - **Window Elevation**: Dual-layer drop shadows with distinct ambient diffusion and directional offset layers, adjustable corner radius, and optional macOS traffic light headers.
 - **2.5D Stage Tilt**: Fine-tune pitch, yaw, and perspective depth for angled isometric presentations.
 
-### 4. 4K and GIF Export Pipeline
+### 4. Advanced Studio FX & Presentation Tools
+- **Keycasting Shortcut HUD**: Floating translucent pill displaying pressed keys and shortcut combinations (such as `Ctrl + Shift + P` or `Cmd + K`) with animated entrance and exit decays.
+- **Webcam Picture-in-Picture (Talking Head)**: Circular or squircle presenter camera bubble with adjustable diameter, border glow, shadow, and corner positioning (Bottom-Right, Bottom-Left, Top-Right, Top-Left).
+- **Spotlight Focus Dimmer**: Attenuates background video while preserving an illuminated focal beam around the active mouse coordinate.
+- **Web Audio Tactile Click Synthesizer**: Pure Web Audio synthesis delivering mechanical switch, soft tap, or minimal click transients on mouse actions with zero external sound files.
+- **Smart Idle Speed Ramping**: Detects inactive intervals exceeding threshold duration and accelerates playback by 2x or 4x to eliminate dead air without hard cuts.
+- **External Video Drag and Drop**: Import any pre-recorded MP4, WebM, or MOV file directly into the studio workspace.
+
+### 5. 4K and GIF Export Pipeline
 - **Hardware Acceleration**: Bridges to local FFmpeg with NVENC, QSV, and AMF encoder detection for fast 60 FPS 4K rendering.
 - **Palette-Optimized GIFs**: Two-pass palette generation using differential statistics (`palettegen` and `paletteuse` with Bayer dithering) to eliminate color banding on GitHub READMEs.
 - **In-Browser WebCodecs Fallback**: Standalone client-side video encoding using MediaRecorder and canvas stream extraction.
@@ -86,7 +94,9 @@ ScreenForge captures screen frames, audio, and synchronous mouse telemetry. In p
 │  Studio Engine Layers:                                      │
 │   ├─ AutoZoomEngine      -> Action clustering, glide curves │
 │   ├─ SpringCursorEngine  -> 2nd-order damped harmonic physics│
-│   ├─ StudioRenderer      -> Canvas compositor & 2.5D matrix │
+│   ├─ ClickAudioSynth     -> Real-time Web Audio click pops  │
+│   ├─ IdleCompressor      -> Inactive time speed ramping     │
+│   ├─ StudioRenderer      -> Canvas compositor, PiP, Dimmer  │
 │   └─ ExportEngine        -> Frame pipeline & progress state │
 ├─────────────────────────────────────────────────────────────┤
 │                       Tauri v2 IPC                          │
@@ -151,23 +161,26 @@ npm run tauri build
 
 ## Verification & Testing
 
-ScreenForge includes an automated unit test suite verifying zoom coordinate clamping, click clustering heuristics, and damped spring convergence:
+ScreenForge includes an automated unit test suite verifying zoom coordinate clamping, click clustering heuristics, idle compression, and damped spring convergence:
 
 ```bash
 npm test
 ```
 
 ```
-✓ tests/engine.test.ts (6 tests)
+✓ tests/engine.test.ts (9 tests)
   ✓ AutoZoomEngine > correctly clamps center coordinates to prevent showing offscreen boundaries
   ✓ AutoZoomEngine > clusters proximate clicks into unified zoom segments
   ✓ AutoZoomEngine > smoothly interpolates camera state during transitions
   ✓ SpringCursorEngine > smoothly guides cursor position towards target without blowing up
   ✓ SpringCursorEngine > detects recent click events for tactile ripple rendering
   ✓ StudioRenderer > computes exact pixel dimensions for standard aspect ratios
+  ✓ IdleSpeedCompressor > identifies inactive spans exceeding threshold duration
+  ✓ IdleSpeedCompressor > boosts speed multiplier when playhead sits within an idle span
+  ✓ ClickAudioSynthesizer > initializes with configurable volume and muted parameters
 
 Test Files  1 passed (1)
-     Tests  6 passed (6)
+     Tests  9 passed (9)
 ```
 
 ---
