@@ -7,8 +7,7 @@ import {
   Monitor,
   Smartphone,
   Square,
-  Settings2,
-  RefreshCw,
+  Sliders,
   FolderOpen,
 } from 'lucide-react';
 import { AspectRatio, RecordingSession, StudioSettings, ZoomKeyframe } from '../types';
@@ -21,6 +20,8 @@ interface HeaderProps {
   studioSettings: StudioSettings;
   onUpdateStudioSettings: (settings: Partial<StudioSettings>) => void;
   isRecordingActive?: boolean;
+  isInspectorOpen?: boolean;
+  onToggleInspector?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +32,8 @@ export const Header: React.FC<HeaderProps> = ({
   studioSettings,
   onUpdateStudioSettings,
   isRecordingActive = false,
+  isInspectorOpen = false,
+  onToggleInspector,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -87,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 border-b border-neutral-800/80 bg-neutral-900/90 backdrop-blur-md px-4 flex items-center justify-between z-30 select-none">
+    <header className="h-14 border-b border-neutral-800/80 bg-neutral-900/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-30 select-none">
       <input
         ref={fileInputRef}
         type="file"
@@ -97,13 +100,13 @@ export const Header: React.FC<HeaderProps> = ({
       />
 
       {/* Brand & Identity */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 via-pink-600 to-violet-600 shadow-lg shadow-rose-500/20 text-white font-black text-sm tracking-wider">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-rose-500 via-pink-600 to-violet-600 shadow-lg shadow-rose-500/20 text-white font-black text-xs sm:text-sm tracking-wider shrink-0">
           SF
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="font-extrabold text-base tracking-tight text-white">ScreenForge</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+        <div className="flex items-baseline gap-1.5 sm:gap-2">
+          <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">ScreenForge</span>
+          <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
             Open Studio 4K
           </span>
         </div>
@@ -150,51 +153,68 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm"
+          className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm"
           title="Import external MP4 or WebM video file"
         >
           <FolderOpen className="w-3.5 h-3.5 text-sky-400" />
-          <span>Import Video</span>
+          <span className="hidden md:inline">Import Video</span>
         </button>
 
         <button
           onClick={onLoadSample}
-          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm"
+          className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm"
           title="Load demonstration session with realistic cursor telemetry"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>Demo Session</span>
+          <span className="hidden lg:inline">Demo Session</span>
         </button>
 
         <button
           onClick={onOpenRecorder}
           disabled={isRecordingActive}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
+          className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 shadow-sm ${
             isRecordingActive
               ? 'bg-red-500/20 text-red-400 border border-red-500/30'
               : 'bg-neutral-800 hover:bg-neutral-700/80 text-white border border-neutral-700/80'
           }`}
         >
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span>Record Screen</span>
+          <span className="hidden sm:inline">Record Screen</span>
+          <span className="sm:hidden">Record</span>
         </button>
 
         <button
           onClick={onOpenExport}
-          className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 shadow-md shadow-rose-500/25 active:scale-98 transition-all flex items-center gap-1.5"
+          className="px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 shadow-md shadow-rose-500/25 active:scale-98 transition-all flex items-center gap-1.5"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Export 4K</span>
+          <span className="hidden sm:inline">Export 4K</span>
+          <span className="sm:hidden">Export</span>
         </button>
+
+        {/* Mobile/Tablet Inspector Drawer Toggle */}
+        {onToggleInspector && (
+          <button
+            onClick={onToggleInspector}
+            className={`lg:hidden p-1.5 rounded-lg border transition-all ${
+              isInspectorOpen
+                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                : 'text-neutral-400 hover:text-white bg-neutral-800/80 border-neutral-700/60'
+            }`}
+            title="Toggle Studio Inspector"
+          >
+            <Sliders className="w-4 h-4" />
+          </button>
+        )}
 
         <a
           href="https://github.com/alexandrmotologa/screenforge"
           target="_blank"
           rel="noreferrer"
-          className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
+          className="hidden sm:inline-flex p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
           title="GitHub Repository"
         >
           <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">

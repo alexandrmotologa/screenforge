@@ -66,15 +66,7 @@ async function run() {
 
   const page = await browser.newPage();
 
-  // 1. Render assets/logo.png from inline SVG
-  console.log('Rendering assets/logo.png from assets/logo.svg...');
-  const logoSvg = fs.readFileSync(path.join(ASSETS_DIR, 'logo.svg'), 'utf8');
-  await page.setViewport({ width: 512, height: 512, deviceScaleFactor: 1 });
-  await page.setContent(`<!DOCTYPE html><html><body style="margin:0;padding:0;background:transparent;overflow:hidden;">${logoSvg}</body></html>`);
-  await page.screenshot({ path: path.join(ASSETS_DIR, 'logo.png'), omitBackground: true });
-  console.log('assets/logo.png generated.');
-
-  // 2. Open Studio App
+  // 1. Open Studio App
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
   await page.goto('http://127.0.0.1:5199', { waitUntil: 'domcontentloaded' });
   await new Promise((r) => setTimeout(r, 2000));
@@ -91,7 +83,7 @@ async function run() {
   const buttons = await page.$$('button');
   for (const b of buttons) {
     const text = await page.evaluate((el) => el.textContent, b);
-    if (text && text.includes('Auto-Zoom')) {
+    if (text && text.includes('Zoom') && !text.includes('Add')) {
       await b.click();
       break;
     }
@@ -147,7 +139,7 @@ async function run() {
   const exportBtns = await page.$$('button');
   for (const b of exportBtns) {
     const text = await page.evaluate((el) => el.textContent, b);
-    if (text && text.includes('Export 4K')) {
+    if (text && text.includes('Export')) {
       await b.click();
       break;
     }
@@ -169,7 +161,32 @@ async function run() {
   }
   await new Promise((r) => setTimeout(r, 500));
 
-  // 3. Record Live Frames for Animated Demo GIF
+  // Screenshot 6: Responsive Tablet / Mobile View
+  console.log('Capturing Screenshot 6: screenforge_responsive.png...');
+  await page.setViewport({ width: 768, height: 1024, deviceScaleFactor: 2 });
+  await new Promise((r) => setTimeout(r, 600));
+
+  // Open inspector drawer on tablet
+  const allBtns = await page.$$('button');
+  for (const b of allBtns) {
+    const title = await page.evaluate((el) => el.getAttribute('title'), b);
+    if (title && title.includes('Toggle Studio Inspector')) {
+      await b.click();
+      break;
+    }
+  }
+  await new Promise((r) => setTimeout(r, 600));
+
+  await page.screenshot({
+    path: path.join(OUT_DIR, 'screenforge_responsive.png'),
+    fullPage: false,
+  });
+
+  // Reset viewport back to desktop for animation sequence
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
+  await new Promise((r) => setTimeout(r, 500));
+
+  // 2. Record Live Frames for Animated Demo GIF
   console.log('Recording live animation sequence for demo GIF...');
   let frameCount = 0;
   for (let i = 0; i < 24; i++) {
@@ -182,7 +199,7 @@ async function run() {
   server.close();
   console.log('Browser and server closed.');
 
-  // 4. Generate Animated Demo GIF using FFmpeg
+  // 3. Generate Animated Demo GIF using FFmpeg
   console.log('Generating screenforge_demo.gif with FFmpeg palettegen...');
   const gifOut = path.join(OUT_DIR, 'screenforge_demo.gif');
   try {

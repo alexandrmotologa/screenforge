@@ -110,6 +110,7 @@ export const App: React.FC = () => {
   // Modals
   const [isRecorderOpen, setIsRecorderOpen] = useState<boolean>(false);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
 
   const lastFrameTimeRef = useRef<number>(performance.now());
   const lastClickPlayedIndexRef = useRef<number>(-1);
@@ -304,6 +305,8 @@ export const App: React.FC = () => {
         onUpdateStudioSettings={(s) =>
           setStudioSettings((prev) => ({ ...prev, ...s }))
         }
+        isInspectorOpen={isInspectorOpen}
+        onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
       />
 
       <DropZone
@@ -313,7 +316,7 @@ export const App: React.FC = () => {
           setIsPlaying(true);
         }}
       >
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           <StudioCanvas
             session={session}
             currentTimeSeconds={currentTime}
@@ -325,39 +328,84 @@ export const App: React.FC = () => {
             isPlaying={isPlaying}
           />
 
-          <Inspector
-            studioSettings={studioSettings}
-            cursorSettings={cursorSettings}
-            spotlightSettings={spotlightSettings}
-            webcamSettings={webcamSettings}
-            keycastSettings={keycastSettings}
-            idleRampSettings={idleRampSettings}
-            audioClickStyle={audioClickStyle}
-            zoomKeyframes={session.zoomKeyframes}
-            onUpdateStudioSettings={(s) =>
-              setStudioSettings((prev) => ({ ...prev, ...s }))
-            }
-            onUpdateCursorSettings={(c) =>
-              setCursorSettings((prev) => ({ ...prev, ...c }))
-            }
-            onUpdateSpotlightSettings={(sp) =>
-              setSpotlightSettings((prev) => ({ ...prev, ...sp }))
-            }
-            onUpdateWebcamSettings={(w) =>
-              setWebcamSettings((prev) => ({ ...prev, ...w }))
-            }
-            onUpdateKeycastSettings={(k) =>
-              setKeycastSettings((prev) => ({ ...prev, ...k }))
-            }
-            onUpdateIdleRampSettings={(ir) =>
-              setIdleRampSettings((prev) => ({ ...prev, ...ir }))
-            }
-            onUpdateAudioClickStyle={(st) => setAudioClickStyle(st)}
-            onRegenerateAutoZoom={handleRegenerateAutoZoom}
-            onUpdateKeyframe={handleUpdateKeyframe}
-            onRemoveKeyframe={handleRemoveZoomKeyframe}
-            onSeek={(t) => setCurrentTime(t)}
-          />
+          {/* Desktop Inspector Sidebar (Always visible on lg+) */}
+          <div className="hidden lg:flex">
+            <Inspector
+              studioSettings={studioSettings}
+              cursorSettings={cursorSettings}
+              spotlightSettings={spotlightSettings}
+              webcamSettings={webcamSettings}
+              keycastSettings={keycastSettings}
+              idleRampSettings={idleRampSettings}
+              audioClickStyle={audioClickStyle}
+              zoomKeyframes={session.zoomKeyframes}
+              onUpdateStudioSettings={(s) =>
+                setStudioSettings((prev) => ({ ...prev, ...s }))
+              }
+              onUpdateCursorSettings={(c) =>
+                setCursorSettings((prev) => ({ ...prev, ...c }))
+              }
+              onUpdateSpotlightSettings={(sp) =>
+                setSpotlightSettings((prev) => ({ ...prev, ...sp }))
+              }
+              onUpdateWebcamSettings={(w) =>
+                setWebcamSettings((prev) => ({ ...prev, ...w }))
+              }
+              onUpdateKeycastSettings={(k) =>
+                setKeycastSettings((prev) => ({ ...prev, ...k }))
+              }
+              onUpdateIdleRampSettings={(ir) =>
+                setIdleRampSettings((prev) => ({ ...prev, ...ir }))
+              }
+              onUpdateAudioClickStyle={(st) => setAudioClickStyle(st)}
+              onRegenerateAutoZoom={handleRegenerateAutoZoom}
+              onUpdateKeyframe={handleUpdateKeyframe}
+              onRemoveKeyframe={handleRemoveZoomKeyframe}
+              onSeek={(t) => setCurrentTime(t)}
+            />
+          </div>
+
+          {/* Mobile/Tablet Inspector Drawer Overlay */}
+          {isInspectorOpen && (
+            <div className="lg:hidden absolute inset-0 z-40 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+              <div className="h-full w-80 max-w-[85vw] shadow-2xl flex flex-col bg-neutral-900 border-l border-neutral-800 animate-in slide-in-from-right duration-200">
+                <Inspector
+                  studioSettings={studioSettings}
+                  cursorSettings={cursorSettings}
+                  spotlightSettings={spotlightSettings}
+                  webcamSettings={webcamSettings}
+                  keycastSettings={keycastSettings}
+                  idleRampSettings={idleRampSettings}
+                  audioClickStyle={audioClickStyle}
+                  zoomKeyframes={session.zoomKeyframes}
+                  onUpdateStudioSettings={(s) =>
+                    setStudioSettings((prev) => ({ ...prev, ...s }))
+                  }
+                  onUpdateCursorSettings={(c) =>
+                    setCursorSettings((prev) => ({ ...prev, ...c }))
+                  }
+                  onUpdateSpotlightSettings={(sp) =>
+                    setSpotlightSettings((prev) => ({ ...prev, ...sp }))
+                  }
+                  onUpdateWebcamSettings={(w) =>
+                    setWebcamSettings((prev) => ({ ...prev, ...w }))
+                  }
+                  onUpdateKeycastSettings={(k) =>
+                    setKeycastSettings((prev) => ({ ...prev, ...k }))
+                  }
+                  onUpdateIdleRampSettings={(ir) =>
+                    setIdleRampSettings((prev) => ({ ...prev, ...ir }))
+                  }
+                  onUpdateAudioClickStyle={(st) => setAudioClickStyle(st)}
+                  onRegenerateAutoZoom={handleRegenerateAutoZoom}
+                  onUpdateKeyframe={handleUpdateKeyframe}
+                  onRemoveKeyframe={handleRemoveZoomKeyframe}
+                  onSeek={(t) => setCurrentTime(t)}
+                  onClose={() => setIsInspectorOpen(false)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </DropZone>
 

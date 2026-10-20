@@ -88,21 +88,21 @@ export const Timeline: React.FC<TimelineProps> = ({
   const outPointPercent = (outPoint / safeDuration) * 100;
 
   return (
-    <div className="h-60 bg-neutral-900/95 border-t border-neutral-800/90 flex flex-col z-20 select-none">
+    <div className="h-56 sm:h-60 bg-neutral-900/95 border-t border-neutral-800/90 flex flex-col z-20 select-none">
       {/* Top Playback Toolbar */}
-      <div className="h-11 px-4 border-b border-neutral-800/80 flex items-center justify-between">
+      <div className="h-11 px-2 sm:px-4 border-b border-neutral-800/80 flex items-center justify-between overflow-x-auto gap-2">
         {/* Left: Transport controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             onClick={() => onSeek(0)}
-            className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
+            className="p-1 sm:p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
             title="Rewind to start"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onSeek(Math.max(0, currentTime - 1 / 30))}
-            className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
+            className="p-1 sm:p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
             title="Step back 1 frame"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -110,35 +110,36 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           <button
             onClick={onTogglePlay}
-            className="w-8 h-8 rounded-lg bg-neutral-100 hover:bg-white text-neutral-950 flex items-center justify-center font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-neutral-100 hover:bg-white text-neutral-950 flex items-center justify-center font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
             title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
           >
             {isPlaying ? (
-              <Pause className="w-4 h-4 fill-current" />
+              <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
             ) : (
-              <Play className="w-4 h-4 fill-current ml-0.5" />
+              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current ml-0.5" />
             )}
           </button>
 
           <button
             onClick={() => onSeek(Math.min(duration, currentTime + 1 / 30))}
-            className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
+            className="p-1 sm:p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
             title="Step forward 1 frame"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
           {/* Timecode readout */}
-          <div className="ml-3 font-mono text-xs font-semibold tracking-wider text-neutral-300 bg-neutral-950/70 px-2.5 py-1 rounded-md border border-neutral-800">
+          <div className="ml-1 sm:ml-2 font-mono text-[11px] sm:text-xs font-semibold tracking-wider text-neutral-300 bg-neutral-950/70 px-2 py-0.5 sm:py-1 rounded-md border border-neutral-800">
             <span className="text-rose-400">{formatTime(currentTime)}</span>
             <span className="text-neutral-500 mx-1">/</span>
-            <span>{formatTime(duration)}</span>
+            <span className="hidden sm:inline">{formatTime(duration)}</span>
+            <span className="sm:hidden">{Math.round(duration)}s</span>
           </div>
 
           {/* Audio Click Sound FX Toggle */}
           <button
             onClick={onToggleAudioClick}
-            className={`ml-2 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+            className={`px-1.5 sm:px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 border transition-all ${
               audioClickEnabled
                 ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
                 : 'bg-neutral-950/70 border-neutral-800 text-neutral-500 hover:text-neutral-300'
@@ -150,39 +151,42 @@ export const Timeline: React.FC<TimelineProps> = ({
             ) : (
               <VolumeX className="w-3.5 h-3.5" />
             )}
-            <span>Click FX</span>
+            <span className="hidden md:inline">Click FX</span>
           </button>
         </div>
 
         {/* Center: Add Zoom at Playhead */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={() => onAddZoomKeyframe(currentTime)}
-            className="px-2.5 py-1 text-xs font-semibold text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-md transition-all flex items-center gap-1.5"
+            className="px-2 sm:px-2.5 py-1 text-xs font-semibold text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-md transition-all flex items-center gap-1.5"
             title="Insert auto-zoom block at current playhead"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Zoom Keyframe</span>
+            <span className="hidden sm:inline">Add Zoom Keyframe</span>
+            <span className="sm:hidden">Zoom</span>
           </button>
 
-          <button
-            onClick={() => onSetInPoint(currentTime)}
-            className="px-2 py-1 text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 rounded border border-neutral-800 transition-all"
-            title="Set In-Point"
-          >
-            [ In
-          </button>
-          <button
-            onClick={() => onSetOutPoint(currentTime)}
-            className="px-2 py-1 text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 rounded border border-neutral-800 transition-all"
-            title="Set Out-Point"
-          >
-            Out ]
-          </button>
+          <div className="hidden sm:flex items-center gap-1">
+            <button
+              onClick={() => onSetInPoint(currentTime)}
+              className="px-2 py-1 text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 rounded border border-neutral-800 transition-all"
+              title="Set In-Point"
+            >
+              [ In
+            </button>
+            <button
+              onClick={() => onSetOutPoint(currentTime)}
+              className="px-2 py-1 text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 rounded border border-neutral-800 transition-all"
+              title="Set Out-Point"
+            >
+              Out ]
+            </button>
+          </div>
         </div>
 
         {/* Right: Speed selector */}
-        <div className="flex items-center gap-1 bg-neutral-950/60 p-0.5 rounded-lg border border-neutral-800 text-xs">
+        <div className="hidden sm:flex items-center gap-1 bg-neutral-950/60 p-0.5 rounded-lg border border-neutral-800 text-xs shrink-0">
           {[0.5, 1, 1.5, 2].map((rate) => (
             <button
               key={rate}
@@ -200,7 +204,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
 
       {/* Main Track Workspace */}
-      <div className="flex-1 px-4 py-2 flex flex-col gap-1.5 overflow-hidden">
+      <div className="flex-1 px-2 sm:px-4 py-2 flex flex-col gap-1.5 overflow-hidden">
         {/* Time Ruler with Idle Ramp Spans */}
         <div
           ref={rulerRef}
@@ -238,108 +242,116 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div className="w-2.5 h-2.5 bg-rose-500 rounded-sm -ml-1 -mt-0.5 shadow-md shadow-rose-500/50" />
           </div>
 
-          <div className="absolute inset-0 flex justify-between px-3 items-center pointer-events-none font-mono text-[9px] text-neutral-500">
-            <span>00:00</span>
-            <span>{formatTime(duration * 0.25)}</span>
-            <span>{formatTime(duration * 0.5)}</span>
-            <span>{formatTime(duration * 0.75)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
+          {/* Tick markers */}
+          {Array.from({ length: 21 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-0 bottom-0 border-l border-neutral-800/60 pointer-events-none text-[9px] font-mono text-neutral-600 pl-1"
+              style={{ left: `${i * 5}%` }}
+            >
+              {i % 4 === 0 && `${((i * 5 * safeDuration) / 100).toFixed(0)}s`}
+            </div>
+          ))}
         </div>
 
-        {/* Track 1: Auto-Zoom Keyframe Chips */}
-        <div className="relative h-11 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 py-1 flex items-center overflow-x-auto">
-          <div className="w-20 shrink-0 flex items-center gap-1.5 text-rose-400 font-bold text-[11px]">
-            <ZoomIn className="w-3.5 h-3.5" />
-            <span>ZOOM</span>
+        {/* Track 1: Auto-Zoom Keyframe Segments */}
+        <div className="relative h-10 bg-neutral-950/60 rounded-md border border-neutral-800/60 flex items-center px-1 overflow-hidden">
+          <div className="absolute left-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1 pointer-events-none z-10">
+            <ZoomIn className="w-3 h-3 text-rose-400" />
+            <span>Auto-Zoom</span>
           </div>
 
-          <div className="relative flex-1 h-full">
-            {zoomKeyframes.map((kf) => {
-              const startPct = (kf.startTime / safeDuration) * 100;
-              const widthPct = ((kf.endTime - kf.startTime) / safeDuration) * 100;
-              const isCurrent = currentTime >= kf.startTime && currentTime <= kf.endTime;
+          {zoomKeyframes.map((kf) => {
+            const startPct = (kf.startTime / safeDuration) * 100;
+            const endPct = (kf.endTime / safeDuration) * 100;
+            const widthPct = Math.max(2, endPct - startPct);
+            const isSelected = currentTime >= kf.startTime && currentTime <= kf.endTime;
 
-              return (
-                <div
-                  key={kf.id}
-                  className={`absolute top-0.5 bottom-0.5 rounded px-2 flex items-center justify-between text-[10px] font-semibold transition-all border group ${
-                    isCurrent
-                      ? 'bg-rose-500/30 border-rose-500 text-rose-200 shadow-md shadow-rose-500/20'
-                      : 'bg-rose-500/15 border-rose-500/30 text-rose-300 hover:bg-rose-500/25'
-                  }`}
-                  style={{
-                    left: `${startPct}%`,
-                    width: `${Math.max(4, widthPct)}%`,
-                  }}
-                  title={`${kf.label || 'Zoom'} (${kf.scale}x): ${kf.startTime.toFixed(1)}s - ${kf.endTime.toFixed(1)}s`}
-                >
-                  <span className="truncate">
-                    {kf.scale}x {kf.label || ''}
+            return (
+              <div
+                key={kf.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSeek(kf.startTime);
+                }}
+                className={`group absolute top-1 bottom-1 rounded-md px-2 flex items-center justify-between text-xs font-semibold cursor-pointer border transition-all ${
+                  isSelected
+                    ? 'bg-rose-500/30 border-rose-400 text-white shadow-lg shadow-rose-500/20'
+                    : 'bg-rose-500/15 border-rose-500/40 text-rose-300 hover:bg-rose-500/25'
+                }`}
+                style={{
+                  left: `${startPct}%`,
+                  width: `${widthPct}%`,
+                }}
+                title={`Zoom Block: ${kf.scale.toFixed(1)}x (${kf.startTime.toFixed(1)}s - ${kf.endTime.toFixed(1)}s)`}
+              >
+                <div className="flex items-center gap-1 truncate">
+                  <span className="font-mono text-[10px] font-extrabold px-1 py-0.5 rounded bg-rose-500/30 text-rose-200">
+                    {kf.scale.toFixed(1)}x
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveZoomKeyframe(kf.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-white rounded transition-opacity"
-                    title="Delete Keyframe"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <span className="truncate text-[11px] font-medium hidden sm:inline">
+                    {kf.label || 'Action Target'}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Track 2: Cursor & Keystroke Telemetry */}
-        <div className="relative h-8 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 flex items-center">
-          <div className="w-20 shrink-0 flex items-center gap-1.5 text-sky-400 font-bold text-[11px]">
-            <MousePointer className="w-3.5 h-3.5" />
-            <span>CLICKS</span>
-          </div>
-
-          <div className="relative flex-1 h-full flex items-center">
-            {clickTimestamps.map((tMs, idx) => {
-              const pct = (tMs / 1000 / safeDuration) * 100;
-              return (
-                <div
-                  key={idx}
-                  className="absolute w-2 h-2 rounded-full bg-sky-400 hover:bg-sky-300 shadow-sm shadow-sky-400/50 hover:scale-150 transition-transform -ml-1 cursor-pointer"
-                  style={{ left: `${pct}%` }}
-                  title={`Click Event at ${(tMs / 1000).toFixed(2)}s`}
-                  onClick={() => onSeek(tMs / 1000)}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Track 3: Keycasting HUD Track */}
-        <div className="relative h-8 bg-neutral-950/60 rounded-md border border-neutral-800/60 px-2 flex items-center">
-          <div className="w-20 shrink-0 flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
-            <Keyboard className="w-3.5 h-3.5" />
-            <span>KEYS</span>
-          </div>
-
-          <div className="relative flex-1 h-full flex items-center">
-            {keystrokes.map((k) => {
-              const pct = (k.timestamp / 1000 / safeDuration) * 100;
-              const label = [...k.modifiers, k.key].join('+');
-              return (
-                <div
-                  key={k.id}
-                  className="absolute px-1 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono text-emerald-300 truncate max-w-[80px] -ml-2 cursor-pointer hover:bg-emerald-500/30"
-                  style={{ left: `${pct}%` }}
-                  title={`Keystroke: ${label}`}
-                  onClick={() => onSeek(k.timestamp / 1000)}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveZoomKeyframe(kf.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 text-neutral-400 hover:text-red-400 transition-opacity"
+                  title="Delete keyframe"
                 >
-                  {label}
-                </div>
-              );
-            })}
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Track 2: Mouse Telemetry & Click Bursts */}
+        <div className="relative h-7 bg-neutral-950/60 rounded-md border border-neutral-800/60 flex items-center px-1 overflow-hidden">
+          <div className="absolute left-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1 pointer-events-none z-10">
+            <MousePointer className="w-3 h-3 text-sky-400" />
+            <span className="hidden sm:inline">Cursor Actions</span>
           </div>
+
+          {clickTimestamps.map((ts, idx) => {
+            const pct = (ts / (safeDuration * 1000)) * 100;
+            return (
+              <div
+                key={idx}
+                className="absolute top-1 bottom-1 w-2 -ml-1 rounded-full bg-pink-500/80 shadow-sm pointer-events-none flex items-center justify-center animate-pulse"
+                style={{ left: `${pct}%` }}
+                title={`Click Event @ ${(ts / 1000).toFixed(2)}s`}
+              >
+                <div className="w-1 h-1 rounded-full bg-white" />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Track 3: Keycasting HUD Shortcut Logs */}
+        <div className="relative h-7 bg-neutral-950/60 rounded-md border border-neutral-800/60 flex items-center px-1 overflow-hidden">
+          <div className="absolute left-2 text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1 pointer-events-none z-10">
+            <Keyboard className="w-3 h-3 text-amber-400" />
+            <span className="hidden sm:inline">Keycasts</span>
+          </div>
+
+          {keystrokes.map((k) => {
+            const pct = (k.timestamp / (safeDuration * 1000)) * 100;
+            const keyLabel = [...k.modifiers, k.key].join('+');
+            return (
+              <div
+                key={k.id}
+                className="absolute top-1 bottom-1 px-1.5 rounded bg-neutral-800/90 border border-neutral-700/80 text-[10px] font-mono font-bold text-neutral-200 flex items-center justify-center shadow-sm pointer-events-none"
+                style={{ left: `${pct}%` }}
+                title={`Keystroke: ${keyLabel} @ ${(k.timestamp / 1000).toFixed(2)}s`}
+              >
+                {keyLabel}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

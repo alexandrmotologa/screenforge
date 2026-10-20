@@ -1,0 +1,258 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { Resvg } from '@resvg/resvg-js';
+
+const ASSETS_DIR = path.resolve(process.cwd(), 'assets');
+fs.mkdirSync(ASSETS_DIR, { recursive: true });
+
+function buildLogoSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="squircle-clip">
+      <rect x="24" y="24" width="976" height="976" rx="220" />
+    </clipPath>
+
+    <!-- Luxury Gradients -->
+    <linearGradient id="containerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+
+    <linearGradient id="roseOptics" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <linearGradient id="cyanPrecision" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5ff"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <linearGradient id="titaniumLight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+
+    <linearGradient id="titaniumMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+
+    <linearGradient id="titaniumDark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="beakGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="60%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#0f172a" flood-opacity="0.14" />
+    </filter>
+
+    <filter id="eye-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Luxury White Squircle Container -->
+  <rect x="24" y="24" width="976" height="976" rx="220" fill="url(#containerGrad)" stroke="#e2e8f0" stroke-width="6" />
+
+  <g clip-path="url(#squircle-clip)">
+    <g transform="translate(512, 512)" filter="url(#subtle-shadow)">
+
+      <!-- Hexagonal Architectural Gateway Frame -->
+      <polygon points="
+        0,-400
+        346,-200
+        346,200
+        0,400
+        -346,200
+        -346,-200
+      " fill="none" stroke="#0f172a" stroke-width="36" stroke-linejoin="round" />
+
+      <!-- Optical Camera Reticle Hexagon (Auto-Zoom Framing) -->
+      <polygon points="
+        0,-364
+        315,-182
+        315,182
+        0,364
+        -315,182
+        -315,-182
+      " fill="none" stroke="url(#roseOptics)" stroke-width="4" opacity="0.6" stroke-dasharray="16, 12" />
+
+      <!-- Viewport Framing Corner Brackets (Camera Matrix) -->
+      <path d="M -260 -290 L -290 -290 L -290 -260" fill="none" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 260 -290 L 290 -290 L 290 -260" fill="none" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>
+      <path d="M -260 290 L -290 290 L -290 260" fill="none" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 260 290 L 290 290 L 290 260" fill="none" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- ============================================================== -->
+      <!-- THE SCREENFORGE PEREGRINE RAPTOR (KINETIC MASCOT)               -->
+      <!-- ============================================================== -->
+
+      <!-- 1. Watertight Solid Base Silhouette (Zero-Leak Foundation) -->
+      <path d="
+        M 0 -310
+        L 95 -285
+        L 180 -210
+        L 245 -110
+        L 260 20
+        L 215 170
+        L 155 240
+        L 75 220
+        L 45 280
+        L 0 295
+        L -45 280
+        L -75 220
+        L -155 240
+        L -215 170
+        L -260 20
+        L -245 -110
+        L -180 -210
+        L -95 -285
+        Z
+      " fill="#090d16" />
+
+      <!-- 2. Low-Poly Volumetric Crown & Crest Plates -->
+      <!-- Center Crown Ridge -->
+      <polygon points="0,-310 50,-240 0,-180 -50,-240" fill="url(#titaniumLight)" stroke="#090d16" stroke-width="2" />
+      <polygon points="0,-310 0,-180 50,-240" fill="#475569" opacity="0.6" />
+      <polygon points="0,-310 0,-180 -50,-240" fill="#334155" opacity="0.8" />
+
+      <!-- Left Crown Facets -->
+      <polygon points="0,-310 50,-240 95,-285" fill="#334155" stroke="#090d16" stroke-width="2" />
+      <polygon points="50,-240 135,-200 95,-285" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="50,-240 75,-165 135,-200" fill="#334155" stroke="#090d16" stroke-width="2" />
+
+      <!-- Right Crown Facets (Mirror) -->
+      <polygon points="0,-310 -50,-240 -95,-285" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="-50,-240 -135,-200 -95,-285" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-50,-240 -75,-165 -135,-200" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+
+      <!-- Outer Crest Flanges -->
+      <polygon points="95,-285 135,-200 180,-210" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="135,-200 195,-130 180,-210" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-95,-285 -135,-200 -180,-210" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-135,-200 -195,-130 -180,-210" fill="#090d16" stroke="#090d16" stroke-width="2" />
+
+      <!-- 3. Forehead & Supraorbital Brow Armor (Predator Gaze Ridge) -->
+      <polygon points="0,-180 75,-165 55,-105 0,-120" fill="url(#titaniumLight)" stroke="#090d16" stroke-width="2" />
+      <polygon points="0,-180 -75,-165 -55,-105 0,-120" fill="url(#titaniumMid)" stroke="#090d16" stroke-width="2" />
+
+      <!-- Supraorbital Brow Shelves (Sharp Predator Cant) -->
+      <polygon points="75,-165 145,-125 125,-85 55,-105" fill="#475569" stroke="#090d16" stroke-width="2" />
+      <polygon points="-75,-165 -145,-125 -125,-85 -55,-105" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+
+      <!-- Lateral Temporal Plates -->
+      <polygon points="145,-125 210,-70 175,-30 125,-85" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="180,-210 195,-130 245,-110" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="195,-130 210,-70 260,20 245,-110" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+
+      <polygon points="-145,-125 -210,-70 -175,-30 -125,-85" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-180,-210 -195,-130 -245,-110" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-195,-130 -210,-70 -260,20 -245,-110" fill="#090d16" stroke="#090d16" stroke-width="2" />
+
+      <!-- 4. Telescopic Auto-Zoom Eyes (Dual Foveal Optics) -->
+      <!-- Left Eye Orbital Cavity -->
+      <polygon points="55,-105 125,-85 105,-40 45,-60" fill="#090d16" />
+      <!-- Left Eye Glowing Sclera & Iris -->
+      <polygon points="62,-98 118,-80 100,-48 52,-64" fill="url(#roseOptics)" filter="url(#eye-glow)" />
+      <!-- Precision Vertical Pupil / Sensor Reticle -->
+      <polygon points="80,-90 88,-88 84,-56 76,-58" fill="#ffffff" />
+      <circle cx="83" cy="-73" r="3" fill="url(#cyanPrecision)" />
+
+      <!-- Right Eye Orbital Cavity (Mirror) -->
+      <polygon points="-55,-105 -125,-85 -105,-40 -45,-60" fill="#090d16" />
+      <!-- Right Eye Glowing Sclera & Iris -->
+      <polygon points="-62,-98 -118,-80 -100,-48 -52,-64" fill="url(#roseOptics)" filter="url(#eye-glow)" />
+      <!-- Precision Vertical Pupil / Sensor Reticle -->
+      <polygon points="-80,-90 -88,-88 -84,-56 -76,-58" fill="#ffffff" />
+      <circle cx="-83" cy="-73" r="3" fill="url(#cyanPrecision)" />
+
+      <!-- 5. Peregrine Falcon Malar Stripes (Tear Facets) -->
+      <!-- Left Malar Stripe -->
+      <polygon points="105,-40 175,-30 195,45 130,25" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="130,25 195,45 215,170 145,115" fill="#090d16" stroke="#090d16" stroke-width="2" />
+      <polygon points="105,-40 130,25 75,5 45,-60" fill="#334155" stroke="#090d16" stroke-width="2" />
+
+      <!-- Right Malar Stripe (Mirror) -->
+      <polygon points="-105,-40 -175,-30 -195,45 -130,25" fill="#090d16" stroke="#090d16" stroke-width="2" />
+      <polygon points="-130,25 -195,45 -215,170 -145,115" fill="#04060a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-105,-40 -130,25 -75,5 -45,-60" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+
+      <!-- Cheek Titanium Plates -->
+      <polygon points="145,115 215,170 155,240 105,185" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="-145,115 -215,170 -155,240 -105,185" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+
+      <!-- 6. Nasal Bridge & Cere (Sensory Array) -->
+      <polygon points="0,-120 45,-60 0,-15" fill="url(#titaniumLight)" stroke="#090d16" stroke-width="2" />
+      <polygon points="0,-120 -45,-60 0,-15" fill="url(#titaniumMid)" stroke="#090d16" stroke-width="2" />
+
+      <!-- Cere Plate (Golden Amber Base of Beak) -->
+      <polygon points="0,-15 45,-10 38,40 0,55" fill="url(#beakGold)" stroke="#090d16" stroke-width="2" />
+      <polygon points="0,-15 -45,-10 -38,40 0,55" fill="#d97706" stroke="#090d16" stroke-width="2" />
+
+      <!-- Nares / Sensor Inlets -->
+      <polygon points="12,5 26,10 20,24 8,18" fill="#090d16" />
+      <polygon points="-12,5 -26,10 -20,24 -8,18" fill="#090d16" />
+
+      <!-- 7. Chiseled Beak & Raptor Tomium (Shearing Apex) -->
+      <!-- Left Upper Beak -->
+      <polygon points="0,55 38,40 30,120 0,165" fill="#334155" stroke="#090d16" stroke-width="2" />
+      <polygon points="30,120 40,135 25,150 0,165" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+
+      <!-- Right Upper Beak (Mirror) -->
+      <polygon points="0,55 -38,40 -30,120 0,165" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="-30,120 -40,135 -25,150 0,165" fill="#090d16" stroke="#090d16" stroke-width="2" />
+
+      <!-- Hooked Beak Tip (Down-Curved Talon Apex) -->
+      <polygon points="0,165 20,185 0,225 -20,185" fill="#090d16" stroke="#090d16" stroke-width="2" />
+      <polygon points="0,165 20,185 0,225" fill="#1e293b" />
+      <polygon points="0,165 -20,185 0,225" fill="#090d16" />
+
+      <!-- 8. Throat & Lower Gorget Armor -->
+      <polygon points="0,225 35,210 55,270 0,295" fill="#1e293b" stroke="#090d16" stroke-width="2" />
+      <polygon points="0,225 -35,210 -55,270 0,295" fill="#0f172a" stroke="#090d16" stroke-width="2" />
+      <polygon points="35,210 75,220 55,270" fill="#334155" stroke="#090d16" stroke-width="2" />
+      <polygon points="-35,210 -75,220 -55,270" fill="#090d16" stroke="#090d16" stroke-width="2" />
+
+      <!-- Focal Laser Guide Crosshairs (Subtle Vector Touch) -->
+      <circle cx="0" cy="55" r="4" fill="url(#roseOptics)" />
+      <line x1="-70" y1="55" x2="-55" y2="55" stroke="#ec4899" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+      <line x1="55" y1="55" x2="70" y2="55" stroke="#ec4899" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+    </g>
+  </g>
+</svg>`;
+}
+
+async function main() {
+  console.log('Synthesizing ScreenForge brand logo via developer-branding...');
+  const svg = buildLogoSvg();
+  const svgPath = path.join(ASSETS_DIR, 'logo.svg');
+  fs.writeFileSync(svgPath, svg, 'utf8');
+  console.log('Saved SVG to:', svgPath);
+
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: 'width', value: 1024 },
+  });
+  const pngData = resvg.render();
+  const pngBuffer = pngData.asPng();
+  const pngPath = path.join(ASSETS_DIR, 'logo.png');
+  fs.writeFileSync(pngPath, pngBuffer);
+  console.log('Rendered high-res 1024x1024 PNG to:', pngPath);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

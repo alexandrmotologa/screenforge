@@ -80,6 +80,9 @@ ScreenForge captures screen frames, audio, keystrokes, and synchronous mouse tel
 ### 4K Video Exporter
 <img src="docs/images/screenforge_export_modal.png" alt="4K Exporter Modal" width="860" />
 
+### Responsive Tablet & Mobile Adaptability
+<img src="docs/images/screenforge_responsive.png" alt="Responsive Tablet and Mobile Inspector Drawer" width="860" />
+
 </div>
 
 ---

@@ -14,6 +14,7 @@ import {
   Keyboard,
   FastForward,
   Volume2,
+  X,
 } from 'lucide-react';
 import {
   AspectRatio,
@@ -51,6 +52,7 @@ interface InspectorProps {
   onUpdateKeyframe: (id: string, updates: Partial<ZoomKeyframe>) => void;
   onRemoveKeyframe: (id: string) => void;
   onSeek: (time: number) => void;
+  onClose?: () => void;
 }
 
 export const Inspector: React.FC<InspectorProps> = ({
@@ -73,6 +75,7 @@ export const Inspector: React.FC<InspectorProps> = ({
   onUpdateKeyframe,
   onRemoveKeyframe,
   onSeek,
+  onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<'canvas' | 'zoom' | 'cursor' | 'studio-fx'>('canvas');
 
@@ -138,6 +141,16 @@ export const Inspector: React.FC<InspectorProps> = ({
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span>FX & PiP</span>
         </button>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1.5 ml-1 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors shrink-0"
+            title="Close Inspector"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Tab Contents */}
