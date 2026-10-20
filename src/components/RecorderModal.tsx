@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Sparkles,
 } from 'lucide-react';
+import { isTauri, invoke } from '@tauri-apps/api/core';
 import { CursorEvent, KeystrokeItem, RecordingSession } from '../types';
 import { AutoZoomEngine } from '../engine/autoZoom';
 
@@ -37,9 +38,29 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
   const recordingStartTimeRef = useRef<number>(0);
   const timerIntervalRef = useRef<number | null>(null);
 
+  const listenersRef = useRef<{
+    mouseMove?: (e: MouseEvent) => void;
+    mouseDown?: (e: MouseEvent) => void;
+    keyDown?: (e: KeyboardEvent) => void;
+  }>({});
+
+  const removeWindowListeners = () => {
+    if (listenersRef.current.mouseMove) {
+      window.removeEventListener('mousemove', listenersRef.current.mouseMove);
+    }
+    if (listenersRef.current.mouseDown) {
+      window.removeEventListener('mousedown', listenersRef.current.mouseDown);
+    }
+    if (listenersRef.current.keyDown) {
+      window.removeEventListener('keydown', listenersRef.current.keyDown);
+    }
+    listenersRef.current = {};
+  };
+
   useEffect(() => {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      removeWindowListeners();
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
@@ -138,7 +159,14 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
     mediaRecorderRef.current = recorder;
     recorder.start(200);
 
-    // Global window telemetry listener during recording
+    // If running in Tauri desktop environment, trigger native OS 60Hz telemetry capture
+    if (isTauri()) {
+      invoke('start_global_telemetry').catch((err) => {
+        console.warn('Native global telemetry start failed:', err);
+      });
+    }
+
+    // Window telemetry listener during recording
     const onMouseMove = (e: MouseEvent) => {
       const now = performance.now();
       telemetryRef.current.push({
@@ -177,6 +205,7 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
       });
     };
 
+    listenersRef.current = { mouseMove: onMouseMove, mouseDown: onMouseDown, keyDown: onKeyDown };
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('keydown', onKeyDown);
@@ -195,8 +224,36 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
     }
   };
 
-  const finalizeRecording = (stream: MediaStream) => {
+  const finalizeRecording = async (stream: MediaStream) => {
     stream.getTracks().forEach((track) => track.stop());
+    removeWindowListeners();
+
+    // If running in Tauri desktop environment, collect native OS desktop-wide telemetry
+    if (isTauri()) {
+      try {
+        const nativeTelemetry = await invoke<
+          Array<{
+            x: number;
+            y: number;
+            timestamp: number;
+            event_type: string;
+            button: number;
+          }>
+        >('stop_global_telemetry');
+
+        if (nativeTelemetry && nativeTelemetry.length > 0) {
+          telemetryRef.current = nativeTelemetry.map((p) => ({
+            x: p.x,
+            y: p.y,
+            timestamp: p.timestamp,
+            type: p.event_type as 'move' | 'click',
+            button: p.button >= 0 ? p.button : undefined,
+          }));
+        }
+      } catch (err) {
+        console.warn('Native telemetry collection error:', err);
+      }
+    }
 
     const blob = new Blob(chunksRef.current, { type: 'video/webm' });
     const videoUrl = URL.createObjectURL(blob);
@@ -244,18 +301,16 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md select-none animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl space-y-6">
+      <div className="relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold">
-              <Monitor className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-purple-600 text-white flex items-center justify-center font-bold">
+              <Video className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Record Screen & Studio Telemetry</h2>
-              <p className="text-xs text-neutral-400">
-                Captures high-frame screen video with synchronized mouse actions
-              </p>
+              <h2 className="text-base font-bold text-white">Record Screen</h2>
+              <p className="text-xs text-neutral-400">Capture 4K Display with Cursor Telemetry</p>
             </div>
           </div>
 
@@ -277,85 +332,101 @@ export const RecorderModal: React.FC<RecorderModalProps> = ({
           </div>
         )}
 
-        {/* Recording Active View */}
-        {isRecording ? (
-          <div className="py-8 flex flex-col items-center justify-center space-y-4">
-            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-red-500/10 border-2 border-red-500 animate-pulse">
-              <span className="w-5 h-5 rounded-sm bg-red-500" />
+        {/* Active Countdown */}
+        {countdown !== null && (
+          <div className="py-8 flex flex-col items-center justify-center space-y-2">
+            <div className="text-6xl font-black text-rose-500 animate-ping font-mono">
+              {countdown}
+            </div>
+            <div className="text-xs text-neutral-400 font-medium">Recording starts shortly...</div>
+          </div>
+        )}
+
+        {/* Active Recording View */}
+        {isRecording && countdown === null && (
+          <div className="py-6 flex flex-col items-center justify-center space-y-4">
+            <div className="relative flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-rose-500/20 border-2 border-rose-500 animate-pulse flex items-center justify-center">
+                <div className="w-6 h-6 rounded-sm bg-rose-500" />
+              </div>
             </div>
 
             <div className="text-center space-y-1">
-              <div className="font-mono text-3xl font-extrabold text-white">
-                {Math.floor(elapsedSeconds / 60)
-                  .toString()
-                  .padStart(2, '0')}
-                :{(elapsedSeconds % 60).toString().padStart(2, '0')}
+              <div className="text-2xl font-mono font-bold text-white">
+                {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
+                {String(elapsedSeconds % 60).padStart(2, '0')}
               </div>
-              <p className="text-xs text-neutral-400">
-                Recording screen & telemetry stream at 60 FPS...
-              </p>
+              <div className="text-xs text-neutral-400 flex items-center justify-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span>Recording active screen & telemetry...</span>
+              </div>
             </div>
 
             <button
               onClick={handleStopRecording}
-              className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-red-600/30 active:scale-95 transition-all flex items-center gap-2"
+              className="mt-4 px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-rose-600/30 active:scale-95 transition-all flex items-center gap-2"
             >
-              <Square className="w-4 h-4 fill-current" />
-              <span>Stop & Open in Studio</span>
+              <Square className="w-4 h-4 fill-white" />
+              <span>Stop & Open Studio</span>
             </button>
           </div>
-        ) : countdown !== null ? (
-          <div className="py-12 flex flex-col items-center justify-center">
-            <div className="text-6xl font-black text-rose-500 animate-ping font-mono">
-              {countdown}
-            </div>
-            <p className="mt-6 text-sm text-neutral-400 font-medium">
-              Get ready... starting recording
-            </p>
-          </div>
-        ) : (
-          /* Pre-record Options */
+        )}
+
+        {/* Configuration Setup */}
+        {!isRecording && countdown === null && (
           <div className="space-y-4">
-            <div className="p-4 bg-neutral-950/80 rounded-xl border border-neutral-800 space-y-3">
+            <div className="p-4 bg-neutral-950/60 border border-neutral-800 rounded-xl space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-semibold text-neutral-200">
-                  {includeMic ? (
-                    <Mic className="w-4 h-4 text-emerald-400" />
-                  ) : (
-                    <MicOff className="w-4 h-4 text-neutral-500" />
-                  )}
-                  <span>Include Microphone Voiceover</span>
+                  <Monitor className="w-4 h-4 text-rose-400" />
+                  <span>Display Capture Mode</span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={includeMic}
-                  onChange={(e) => setIncludeMic(e.target.checked)}
-                  className="rounded accent-rose-500 cursor-pointer"
-                />
+                <span className="text-[11px] font-mono text-neutral-400">60 FPS Native</span>
               </div>
-
-              <p className="text-[11px] text-neutral-500 leading-relaxed">
-                When you click Start, choose Entire Screen or an Application Window.
-                ScreenForge synchronizes your clicks and mouse sweeps with high-precision
-                auto-zoom keyframing.
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Choose any screen, window, or Chrome tab. Full mouse cursor movement, velocity, and
+                click coordinates will be tracked automatically.
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            {/* Mic Toggle */}
+            <div className="flex items-center justify-between p-3 bg-neutral-950/40 border border-neutral-800 rounded-xl">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                    includeMic ? 'bg-rose-500/20 text-rose-400' : 'bg-neutral-800 text-neutral-400'
+                  }`}
+                >
+                  {includeMic ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-neutral-200">Microphone Narration</div>
+                  <div className="text-[10px] text-neutral-500">Record voiceover alongside system audio</div>
+                </div>
+              </div>
+
               <button
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
+                onClick={() => setIncludeMic(!includeMic)}
+                className={`w-11 h-6 rounded-full transition-colors relative ${
+                  includeMic ? 'bg-rose-600' : 'bg-neutral-700'
+                }`}
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleStartCapture}
-                className="px-5 py-2.5 bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-500/25 active:scale-95 transition-all flex items-center gap-2"
-              >
-                <Video className="w-4 h-4" />
-                <span>Start Screen Capture</span>
+                <div
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    includeMic ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
               </button>
             </div>
+
+            {/* Start Button */}
+            <button
+              onClick={handleStartCapture}
+              className="w-full py-3 bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-rose-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Select Screen & Record</span>
+            </button>
           </div>
         )}
       </div>

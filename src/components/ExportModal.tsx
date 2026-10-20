@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   Download,
@@ -6,10 +6,10 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  FileVideo,
   Clock,
   Cpu,
 } from 'lucide-react';
+import { isTauri, invoke } from '@tauri-apps/api/core';
 import {
   CursorSettings,
   ExportFormat,
@@ -44,8 +44,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [exportedBlob, setExportedBlob] = useState<Blob | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [ffmpegInfo, setFfmpegInfo] = useState<{
+    available: boolean;
+    version: string;
+    nvenc_supported: boolean;
+  } | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (isTauri()) {
+      invoke<{ available: boolean; version: string; nvenc_supported: boolean }>('check_ffmpeg')
+        .then((info) => {
+          setFfmpegInfo(info);
+          if (info.available) {
+            setEngine('ffmpeg');
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   if (!isOpen) return null;
 
@@ -148,6 +166,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </button>
           )}
         </div>
+
+        {/* FFmpeg / Engine Status Badge */}
+        {ffmpegInfo?.available && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div>
+                <span className="font-semibold">Native Desktop Acceleration: </span>
+                <span>{ffmpegInfo.version}</span>
+              </div>
+            </div>
+            {ffmpegInfo.nvenc_supported && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                NVENC GPU
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Error Callout */}
         {errorMsg && (

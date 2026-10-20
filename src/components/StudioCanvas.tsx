@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   CursorSettings,
-  IdleRampSettings,
   KeycastSettings,
   RecordingSession,
   SpotlightSettings,
@@ -10,6 +9,7 @@ import {
 } from '../types';
 import { StudioRenderer } from '../engine/studioRenderer';
 import { SpringCursorEngine } from '../engine/cursorPhysics';
+import { ClickAudioSynthesizer } from '../engine/audioSynthesizer';
 import { drawSimulatedDesktopUI } from '../data/sampleRecordings';
 import { Maximize2 } from 'lucide-react';
 
@@ -37,8 +37,18 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
+  const webcamStreamRef = useRef<MediaStream | null>(null);
   const simulatedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cursorEngineRef = useRef<SpringCursorEngine>(new SpringCursorEngine(cursorSettings));
+
+  const clickAudioRef = useRef<ClickAudioSynthesizer>(
+    new ClickAudioSynthesizer({
+      isMuted: !cursorSettings.tactileClickSound,
+      volume: cursorSettings.clickSoundVolume,
+    })
+  );
+  const lastAudioCheckTimeRef = useRef<number>(currentTimeSeconds);
 
   const [activeCameraScale, setActiveCameraScale] = useState<number>(1.0);
   const [stageScale, setStageScale] = useState<'fit' | '100%' | '75%'>('fit');
@@ -47,6 +57,102 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   useEffect(() => {
     cursorEngineRef.current.updateSettings(cursorSettings);
   }, [cursorSettings]);
+
+  // Keep click audio settings in sync
+  useEffect(() => {
+    clickAudioRef.current.setMuted(!cursorSettings.tactileClickSound);
+    clickAudioRef.current.setVolume(cursorSettings.clickSoundVolume);
+  }, [cursorSettings.tactileClickSound, cursorSettings.clickSoundVolume]);
+
+  // Trigger tactile synthetic clicks when playback head advances across click timestamps
+  useEffect(() => {
+    if (!isPlaying) {
+      lastAudioCheckTimeRef.current = currentTimeSeconds;
+      return;
+    }
+
+    const prevMs = lastAudioCheckTimeRef.current * 1000;
+    const curMs = currentTimeSeconds * 1000;
+
+    if (curMs > prevMs) {
+      const clickOccurred = session.cursorTelemetry.some(
+        (e) =>
+          (e.type === 'click' || e.type === 'mousedown') &&
+          e.timestamp > prevMs &&
+          e.timestamp <= curMs
+      );
+
+      if (clickOccurred && cursorSettings.tactileClickSound) {
+        clickAudioRef.current.playClick();
+      }
+    }
+
+    lastAudioCheckTimeRef.current = currentTimeSeconds;
+  }, [currentTimeSeconds, isPlaying, session.cursorTelemetry, cursorSettings.tactileClickSound]);
+
+  // Video playback & seek synchronization
+  useEffect(() => {
+    const video = videoElementRef.current;
+    if (!video) return;
+
+    if (Math.abs(video.currentTime - currentTimeSeconds) > 0.15) {
+      video.currentTime = currentTimeSeconds;
+    }
+  }, [currentTimeSeconds]);
+
+  useEffect(() => {
+    const video = videoElementRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isPlaying]);
+
+  // Real Webcam capture stream management
+  useEffect(() => {
+    if (webcamSettings.enabled) {
+      let cancelled = false;
+      navigator.mediaDevices
+        ?.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+            facingMode: 'user',
+          },
+          audio: false,
+        })
+        .then((stream) => {
+          if (cancelled) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          webcamStreamRef.current = stream;
+          if (webcamVideoRef.current) {
+            webcamVideoRef.current.srcObject = stream;
+            webcamVideoRef.current.play().catch(() => {});
+          }
+        })
+        .catch((err) => {
+          console.warn('Real webcam feed unavailable, falling back to synthetic avatar:', err);
+        });
+
+      return () => {
+        cancelled = true;
+        if (webcamStreamRef.current) {
+          webcamStreamRef.current.getTracks().forEach((t) => t.stop());
+          webcamStreamRef.current = null;
+        }
+      };
+    } else {
+      if (webcamStreamRef.current) {
+        webcamStreamRef.current.getTracks().forEach((t) => t.stop());
+        webcamStreamRef.current = null;
+      }
+    }
+  }, [webcamSettings.enabled]);
 
   // Setup offscreen canvas for simulated UI if no real video is attached
   useEffect(() => {
@@ -101,6 +207,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         cursorSettings,
         spotlightSettings,
         webcamSettings,
+        webcamSource: webcamVideoRef.current,
         keycastSettings,
         keystrokes: session.keystrokes,
         cursorEngine: cursorEngineRef.current,
@@ -142,6 +249,15 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
           muted
         />
       )}
+
+      {/* Hidden live webcam element when PiP bubble is enabled */}
+      <video
+        ref={webcamVideoRef}
+        className="hidden"
+        playsInline
+        muted
+        autoPlay
+      />
 
       <div
         className={`relative transition-all duration-300 flex items-center justify-center ${
