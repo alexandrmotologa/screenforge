@@ -196,6 +196,9 @@ async function run() {
   }
 
   await browser.close();
+  if (server.closeAllConnections) {
+    server.closeAllConnections();
+  }
   server.close();
   console.log('Browser and server closed.');
 
@@ -214,6 +217,8 @@ async function run() {
 
   // Cleanup temp frames
   fs.rmSync(FRAMES_DIR, { recursive: true, force: true });
+  console.log('Capture media complete.');
+  process.exit(0);
 }
 
 run().catch((err) => {

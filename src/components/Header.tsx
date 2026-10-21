@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import {
   Video,
-  Play,
   Download,
   Sparkles,
   Monitor,
@@ -90,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 border-b border-neutral-800/80 bg-neutral-900/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-30 select-none">
+    <header className="h-14 border-b border-neutral-800/80 bg-neutral-900/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-30 select-none overflow-x-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -100,108 +99,109 @@ export const Header: React.FC<HeaderProps> = ({
       />
 
       {/* Brand & Identity */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         <div className="relative flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-rose-500 via-pink-600 to-violet-600 shadow-lg shadow-rose-500/20 text-white font-black text-xs sm:text-sm tracking-wider shrink-0">
           SF
         </div>
-        <div className="flex items-baseline gap-1.5 sm:gap-2">
-          <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">ScreenForge</span>
-          <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+        <div className="flex items-baseline gap-2">
+          <span className="font-extrabold text-sm sm:text-base tracking-tight text-white whitespace-nowrap">
+            ScreenForge
+          </span>
+          <span className="hidden xl:inline-flex text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 whitespace-nowrap">
             Open Studio 4K
           </span>
         </div>
       </div>
 
-      {/* Center Quick Canvas Controls */}
-      <div className="hidden md:flex items-center gap-1.5 bg-neutral-950/80 p-1 rounded-lg border border-neutral-800">
+      {/* Center Quick Canvas Controls - Only visible on XL displays where width allows */}
+      <div className="hidden xl:flex items-center gap-1.5 bg-neutral-950/80 p-1 rounded-lg border border-neutral-800 shrink-0">
         <button
           onClick={() => onUpdateStudioSettings({ aspectRatio: '16:9' })}
-          className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${
+          className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
             studioSettings.aspectRatio === '16:9'
               ? 'bg-neutral-800 text-white shadow-sm'
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
           title="16:9 Landscape (Desktop & YouTube)"
         >
-          <Monitor className="w-3.5 h-3.5" />
+          <Monitor className="w-3.5 h-3.5 shrink-0" />
           <span>16:9</span>
         </button>
         <button
           onClick={() => onUpdateStudioSettings({ aspectRatio: '9:16' })}
-          className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${
+          className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
             studioSettings.aspectRatio === '9:16'
               ? 'bg-neutral-800 text-white shadow-sm'
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
           title="9:16 Vertical (Shorts, TikTok, Reels)"
         >
-          <Smartphone className="w-3.5 h-3.5" />
+          <Smartphone className="w-3.5 h-3.5 shrink-0" />
           <span>9:16</span>
         </button>
         <button
           onClick={() => onUpdateStudioSettings({ aspectRatio: '1:1' })}
-          className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${
+          className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap ${
             studioSettings.aspectRatio === '1:1'
               ? 'bg-neutral-800 text-white shadow-sm'
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
           title="1:1 Square (Instagram & Social)"
         >
-          <Square className="w-3.5 h-3.5" />
+          <Square className="w-3.5 h-3.5 shrink-0" />
           <span>1:1</span>
         </button>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm"
+          className="h-8 px-2 sm:px-2.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0"
           title="Import external MP4 or WebM video file"
         >
-          <FolderOpen className="w-3.5 h-3.5 text-sky-400" />
-          <span className="hidden md:inline">Import Video</span>
+          <FolderOpen className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+          <span className="hidden lg:inline">Import Video</span>
         </button>
 
         <button
           onClick={onLoadSample}
-          className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm"
+          className="h-8 px-2 sm:px-2.5 rounded-lg text-xs font-semibold text-neutral-300 hover:text-white bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 transition-all flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0"
           title="Load demonstration session with realistic cursor telemetry"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden lg:inline">Demo Session</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="hidden xl:inline">Demo Session</span>
         </button>
 
         <button
           onClick={onOpenRecorder}
           disabled={isRecordingActive}
-          className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 shadow-sm ${
+          className={`h-8 px-2.5 sm:px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap shrink-0 ${
             isRecordingActive
               ? 'bg-red-500/20 text-red-400 border border-red-500/30'
               : 'bg-neutral-800 hover:bg-neutral-700/80 text-white border border-neutral-700/80'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="hidden sm:inline">Record Screen</span>
-          <span className="sm:hidden">Record</span>
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+          <span className="hidden md:inline">Record Screen</span>
+          <span className="md:hidden">Record</span>
         </button>
 
         <button
           onClick={onOpenExport}
-          className="px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 shadow-md shadow-rose-500/25 active:scale-98 transition-all flex items-center gap-1.5"
+          className="h-8 px-3 sm:px-3.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 hover:from-rose-400 hover:to-purple-500 shadow-md shadow-rose-500/25 active:scale-98 transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
         >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Export 4K</span>
-          <span className="sm:hidden">Export</span>
+          <Download className="w-3.5 h-3.5 shrink-0" />
+          <span>Export 4K</span>
         </button>
 
         {/* Mobile/Tablet Inspector Drawer Toggle */}
         {onToggleInspector && (
           <button
             onClick={onToggleInspector}
-            className={`lg:hidden p-1.5 rounded-lg border transition-all ${
+            className={`lg:hidden h-8 w-8 flex items-center justify-center rounded-lg border transition-all shrink-0 ${
               isInspectorOpen
-                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 shadow-sm'
                 : 'text-neutral-400 hover:text-white bg-neutral-800/80 border-neutral-700/60'
             }`}
             title="Toggle Studio Inspector"
@@ -214,7 +214,7 @@ export const Header: React.FC<HeaderProps> = ({
           href="https://github.com/alexandrmotologa/screenforge"
           target="_blank"
           rel="noreferrer"
-          className="hidden sm:inline-flex p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
+          className="hidden sm:flex h-8 w-8 items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all shrink-0"
           title="GitHub Repository"
         >
           <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
